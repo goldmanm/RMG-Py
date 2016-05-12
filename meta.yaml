@@ -42,6 +42,7 @@ requirements:
     - scoop
     - setuptools
     - xlwt
+    - pandas
 
   run:
     - argparse # [py26]
@@ -80,6 +81,7 @@ requirements:
     - scoop
     - symmetry
     - xlwt
+    - pandas
 
 test:
   source_files:
