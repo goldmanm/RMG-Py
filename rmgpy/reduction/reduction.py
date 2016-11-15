@@ -268,13 +268,20 @@ def searchTargetIndex(targetLabel, reactionModel):
     """
     Searches for the Species object in the core species
     of the reaction that has the same label as the parameter string.
-    """
 
+    This method does not differentiate between multiple species
+    with identical species labels (for example, 3 isomers of 
+    C3H5), and may cause issues when trying targets have multiple
+    isomers. The method currently finds the first instance in the
+    core species list.
+    """
+    spc_labels = []
     for i, spc in enumerate(reactionModel.core.species):
         if spc.label == targetLabel:
             return i
+        spc_labels.append(spc.label)
 
-    raise Exception('{} could not be found...'.format(targetLabel))
+    raise Exception('{} could not be found in species labels {}.'.format(targetLabel,spc_labels))
 
 
 def computeObservables(targets, reactionModel, reactionSystem, atol, rtol):
