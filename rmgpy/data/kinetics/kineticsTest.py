@@ -6,6 +6,7 @@ from rmgpy import settings
 from rmgpy.data.kinetics.database import KineticsDatabase
 from rmgpy.data.base import DatabaseError
 import numpy
+from rmgpy.rmg.react import react
 ###################################################
 
 class TestKineticsDatabase(unittest.TestCase):
@@ -135,3 +136,26 @@ class TestKineticsCommentsParsing(unittest.TestCase):
         self.assertTrue('PDep' in sources[4])
         self.assertEqual(sources[4]['PDep'], 7)
         
+        
+class TestKineticsAccuracy(unittest.TestCase):
+    
+    def setUp(self):
+        self.path = os.path.join(settings['database.directory'],'kinetics','families')
+        self.database = KineticsDatabase()
+        # forbidden structure loading
+        self.database.loadForbiddenStructures(os.path.join(path, 'forbiddenStructures.py'))
+# kinetics family Disproportionation loading
+        self.database.loadKinetics(os.path.join(path, 'kinetics'), \
+                          kineticsFamilies=['R_Addition_MultipleBond'])
+    def test_warm_when_combine_different_templates(self):
+        
+        family = self.database.families[rxn_family_str]
+        reactants = [Molecule().fromAdjacencyList(reactants_adj_list[0]),
+                     Molecule().fromAdjacencyList(reactants_adj_list[1])] 
+
+        reactions = family.generateReactions(reactants)
+        
+
+        spc = Species().fromSMILES("O=C[C]=C")
+        spc.generateResonanceIsomers()
+        reactions = react((spc))
