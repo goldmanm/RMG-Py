@@ -7,7 +7,7 @@ from external.wip import work_in_progress
 from rmgpy.molecule.molecule import Molecule
 from rmgpy.molecule.symmetry import calculateAtomSymmetryNumber, calculateAxisSymmetryNumber, calculateBondSymmetryNumber, calculateCyclicSymmetryNumber
 from rmgpy.species import Species
-
+from rmgpy.molecule.resonance import generateAromaticResonanceIsomers
 ################################################################################
 
 class TestMoleculeSymmetry(unittest.TestCase):
@@ -109,7 +109,7 @@ class TestMoleculeSymmetry(unittest.TestCase):
     
     def testBondSymmetryNumberEthylene(self):
         """
-        Test the Molecule.calculateBondSymmetryNumber() on C=C.
+        Test the Molecule.calculateBondSymmetryNumber() on C=C
         """
         molecule = Molecule().fromSMILES('C=C')
         symmetryNumber = 1
@@ -245,6 +245,24 @@ class TestMoleculeSymmetry(unittest.TestCase):
         symmetryNumber = calculateCyclicSymmetryNumber(molecule)
         self.assertEqual(symmetryNumber, 12)
 
+    @work_in_progress
+    def testCyclicSymmetryNumberCyclohexanone(self):
+        """
+        Test the Molecule.calculateCyclicSymmetryNumber() on C1CCCCC1=O
+        """
+        molecule = Molecule().fromSMILES('C1CCCCC1=O')
+        symmetryNumber = calculateCyclicSymmetryNumber(molecule)
+        self.assertEqual(symmetryNumber, 2)
+        
+    @work_in_progress
+    def testCyclicSymmetryNumberCyclohexan_tri_one(self):
+        """
+        Test the Molecule.calculateCyclicSymmetryNumber() on C1CCC(=O)C(=O)C1=O
+        """
+        molecule = Molecule().fromSMILES('C1CCC(=O)C(=O)C1=O')
+        symmetryNumber = calculateCyclicSymmetryNumber(molecule)
+        self.assertEqual(symmetryNumber, 2)
+
     def testTotalSymmetryNumberBenzene(self):
         """
         Test the Species.getSymmetryNumber() (total symmetry) on c1ccccc1
@@ -255,6 +273,118 @@ class TestMoleculeSymmetry(unittest.TestCase):
         symmetryNumber = species.getSymmetryNumber()
         self.assertEqual(symmetryNumber, 12)
 
+    def testTotalSymmetryNumberAllyl(self):
+        """
+        Test the Species.getSymmetryNumber() (total symmetry) on Allyl, [CH2]C=C
+        """
+        molecule = Molecule().fromSMILES('[CH2]C=C')
+        species = Species(molecule=[molecule])
+        species.generateResonanceIsomers()
+        symmetryNumber = species.getSymmetryNumber()
+        self.assertEqual(symmetryNumber, 2)
+
+    def testTotalSymmetryNumberPentenyl(self):
+        """
+        Test the Species.getSymmetryNumer() for C[CH2]C=CC
+        and ensures that it is differet than the molecule object
+        """
+        spc = Species(molecule=[Molecule().fromSMILES('C[CH]C=CC')])
+        symmetryNumber = spc.getSymmetryNumber()
+        self.assertEqual(symmetryNumber, 18, 'the symmetry number for C[CH]C=CC is 18, but RMG returned {}'.format(symmetryNumber))
+
+    def testSpeciesSymmetryNumberIsNotMoleculeSymmetryNumber(self):
+        """
+        Tests that the species symmetry number can be different from the molecule symmetry number
+
+        This molecule's resonance isomer hybrid should return more symmetry
+        than the base molecule object.
+        """
+        molecule = Molecule().fromSMILES('C[CH2]C=CC')
+        species = Species(molecule=[molecule])
+        self.assertEqual(molecule.getSymmetryNumber() * 2, species.getSymmetryNumber())
+
+    def testAxisSymmetryNumberAllyl(self):
+        """
+        Test the Molecule.calculateAxisSymmetryNumber() on [CH2]C=C
+        """
+        spc = Species(molecule=[Molecule().fromSMILES('[CH2]C=C')])
+        molecule = spc.getResonanceHybrid()
+        self.assertEqual(calculateAxisSymmetryNumber(molecule), 1)
+
+    def testMiddleCarbonAtomSymmetryNumberAllylUsingResonanceHybrid(self):
+        """
+        Test the Molecule.calculateAtomSymmetryNumber() for the middle carbon
+        on [CH2]C=C using the resonance hybrid structure
+        """
+        molecule = Molecule().fromSMILES('[CH2]C=C')
+        species = Species(molecule=[molecule])
+        resonanceHybrid = species.getResonanceHybrid()
+        for atom in resonanceHybrid.atoms:
+            if atom.symbol == 'C':
+                number_carbon_bonds = sum([1 for bond in atom.bonds if bond.symbol=='C'])
+                if number_carbon_bonds == 2:
+                    atom.label = 'center'
+                    symmetryNumber = calculateAtomSymmetryNumber(resonanceHybrid, atom)
+                    self.assertEqual(symmetryNumber, 2)
+                    pass
+
+    def testEdgeCarbonAtomSymmetryNumberAllyl(self):
+        """
+        Test the Molecule.calculateAtomSymmetryNumber() for the edge carbons
+        on [CH2]C=C
+        """
+        spc = Species(molecule=[Molecule().fromSMILES('[CH2]C=C')])
+        molecule = spc.getResonanceHybrid()
+        for atom in molecule.atoms:
+            if atom.symbol =='C':
+                number_carbon_bonds = sum([1 for bond in atom.bonds if bond.symbol=='C'])
+                if number_carbon_bonds == 1:
+                    atom.label = 'edge'
+                    symmetryNumber = calculateAtomSymmetryNumber(molecule, atom)
+                    self.assertEqual(symmetryNumber, 1)
+        
+    def testEdgeCarbonAtomSymmetryNumberAllylUsingResonanceHybrid(self):
+        """
+        Test the Molecule.calculateAtomSymmetryNumber() for the edge carbons
+        on [CH2]C=C
+        """
+        molecule = Molecule().fromSMILES('[CH2]C=C')
+        species = Species(molecule=[molecule])
+        resonanceHybrid = species.getResonanceHybrid()
+        for atom in resonanceHybrid.atoms:
+            if atom.symbol =='C':
+                number_carbon_bonds = sum([1 for bond in atom.bonds if bond.symbol=='C'])
+                if number_carbon_bonds == 1:
+                    atom.label = 'edge'
+                    symmetryNumber = calculateAtomSymmetryNumber(resonanceHybrid, atom)
+                    self.assertEqual(symmetryNumber, 1)
+
+    def testAtomSymmetryNumberAllyl(self):
+        """
+        Test the Molecule.calculateAtomSymmetryNumber() on [CH2]C=C
+        """
+        spc = Species(molecule=[Molecule().fromSMILES('[CH2]C=C')])
+        molecule = spc.getResonanceHybrid()
+        symmetryNumber = 1
+        for atom in molecule.atoms:
+            if not molecule.isAtomInCycle(atom):
+                symmetryNumber *= calculateAtomSymmetryNumber(molecule, atom)
+        self.assertEqual(symmetryNumber, 2)
+
+    def testBondSymmetryNumberAllyl(self):
+        """
+        Test the Molecule.calculateBondSymmetryNumber() on [CH2]C=C
+        """
+        spc = Species(molecule=[Molecule().fromSMILES('[CH2]C=C')])
+        molecule = spc.getResonanceHybrid()
+        symmetryNumber = 1
+        for atom1 in molecule.atoms:
+            for atom2 in atom1.bonds:
+                if molecule.atoms.index(atom1) < molecule.atoms.index(atom2):
+                    symmetryNumber *= calculateBondSymmetryNumber(molecule, atom1, atom2)
+        self.assertEqual(symmetryNumber, 1)
+
+    @work_in_progress
     def testTotalSymmetryNumberToluene(self):
         """
         Test the Species.getSymmetryNumber() (total symmetry) on c1ccccc1C
@@ -263,7 +393,52 @@ class TestMoleculeSymmetry(unittest.TestCase):
         species = Species(molecule=[molecule])
         species.generateResonanceIsomers()
         symmetryNumber = species.getSymmetryNumber()
-        self.assertEqual(symmetryNumber, 3)
+        self.assertEqual(symmetryNumber, 6)
+
+    @work_in_progress
+    def testTotalSymmetryNumberSpecialCyclic(self):
+        """
+        Test the Species.getSymmetryNumber() (total symmetry) from issue # 332
+        """
+        molecule = Molecule().fromSMILES('C1(C(C(C(C(C1C2CCC2)C3CCC3)C4CCC4)C5CCC5)C6CCC6)C7CCC7')
+        species = Species(molecule=[molecule])
+        species.generateResonanceIsomers()
+        symmetryNumber = species.getSymmetryNumber()
+        self.assertEqual(symmetryNumber, 12)
+
+    @work_in_progress
+    def testTotalSymmetryNumberChlorobenzene(self):
+        """
+        Test the Species.getSymmetryNumber() (total symmetry) on c1ccccc1Cl
+        """
+        molecule = Molecule().fromSMILES('c1ccccc1Cl')
+        species = Species(molecule=[molecule])
+        species.generateResonanceIsomers()
+        symmetryNumber = species.getSymmetryNumber()
+        self.assertEqual(symmetryNumber, 2)
+
+    @work_in_progress
+    def testTotalSymmetryNumberPhenoxyKecle(self):
+        """
+        Test the Species.getSymmetryNumber() (total symmetry) on c1ccccc1[O]
+        using kecle structure
+        """
+        molecule = Molecule().fromSMILES('c1ccccc1[O]')
+        species = Species(molecule=[molecule])
+        species.generateResonanceIsomers()
+        symmetryNumber = species.getSymmetryNumber()
+        self.assertEqual(symmetryNumber, 2)
+
+    @work_in_progress
+    def testTotalSymmetryNumberPhenoxyBenzene(self):
+        """
+        Test symmetry on c1ccccc1[O] using phenoxy benzene structure
+        """
+        molecule = Molecule().fromSMILES('c1ccccc1[O]')
+        species = Species(molecule=[molecule])
+        aromatic_molecule = generateAromaticResonanceIsomers(molecule)[0]
+        symmetryNumber = aromatic_molecule.getSymmetryNumber()
+        self.assertEqual(symmetryNumber, 2)
 
     def testTotalSymmetryNumber12Dimethylbenzene(self):
         """
@@ -271,7 +446,6 @@ class TestMoleculeSymmetry(unittest.TestCase):
         """
         molecule = Molecule().fromSMILES('Cc1ccccc1C')
         species = Species(molecule=[molecule])
-        species.generateResonanceIsomers()
         symmetryNumber = species.getSymmetryNumber()
         self.assertEqual(symmetryNumber, 18)
 
@@ -282,7 +456,6 @@ class TestMoleculeSymmetry(unittest.TestCase):
         """
         molecule = Molecule().fromSMILES('Cc1ccc(C)cc1')
         species = Species(molecule=[molecule])
-        species.generateResonanceIsomers()
         symmetryNumber = species.getSymmetryNumber()
         self.assertEqual(symmetryNumber, 36)
         
