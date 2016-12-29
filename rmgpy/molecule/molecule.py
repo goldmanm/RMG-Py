@@ -492,6 +492,53 @@ class Bond(Edge):
         # There are no generic bond types, so isSpecificCaseOf is the same as equivalent
         return self.equivalent(other)
 
+    def getOrderStr(self):
+        """
+        returns a string representing the bond order
+        """
+        return self.order
+        
+    def setOrderStr(self, newOrder):
+        """
+        set the bond order using a valid bond-order character
+        """
+        if newOrder in ['S','D','T','B']:
+            self.order = newOrder
+        else:
+            raise ValueError("{} is not a valid bond order character".format(newOrder))
+        
+    def getOrderNum(self):
+        """
+        returns the bond order as a number
+        """
+        
+        if self.order == 'S':
+            return 1
+        elif self.order == 'D':
+            return 2
+        elif self.order == 'T':
+            return 3
+        elif self.order == 'B':
+            return 1.5
+        else:
+            raise TypeError('Bond order {} is not hardcoded into this method'.format(self.order))
+            
+    def setOrderNum(self, newOrder):
+        """
+        change the bond order with a number
+        """
+        if newOrder == 1:
+            self.order = 'S'
+        elif newOrder == 1.5:
+            self.order = 'B'
+        elif newOrder == 2:
+            self.order = 'D'
+        elif newOrder == 3:
+            self.order = 'T'
+        else:
+            raise ValueError("{} is not a valid bond order number for the Bond class." +  \
+                " Consider using a numberic bond class.".format(newOrder))
+        
     def copy(self):
         """
         Generate a deep copy of the current bond. Modifying the
