@@ -537,7 +537,7 @@ class Bond(Edge):
             self.order = 'T'
         else:
             raise ValueError("{} is not a valid bond order number for the Bond class." +  \
-                " Consider using a numberic bond class.".format(newOrder))
+            " Consider using a numeric bond class.".format(newOrder))
         
     def copy(self):
         """
@@ -640,6 +640,213 @@ class Bond(Edge):
 
 #################################################################################
     
+    
+class BondNum(Edge):
+    """
+    A chemical bond using a numerical attribute. This is currently used to find
+    resonance hybrid structure that is limited by string class. Attributes:
+
+    =================== =================== ====================================
+    Attribute           Type                Description
+    =================== =================== ====================================
+    `order`             ``short``             The :ref:`bond type <bond-types>`
+    =================== =================== ====================================
+
+    """
+
+    def __init__(self, atom1, atom2, order=1):
+        Edge.__init__(self, atom1, atom2)
+        self.order = order
+
+    def __str__(self):
+        """
+        Return a human-readable string representation of the object.
+        """
+        return self.getOrderStr()
+
+    def __repr__(self):
+        """
+        Return a representation that can be used to reconstruct the object.
+        """
+        return '<Bond "{0}">'.format(self.order)
+
+    def __reduce__(self):
+        """
+        A helper function used when pickling an object.
+        """
+        return (Bond, (self.vertex1, self.vertex2, self.order))
+
+    @property
+    def atom1(self):
+        return self.vertex1
+
+    @property
+    def atom2(self):
+        return self.vertex2
+
+    def equivalent(self, other):
+        """
+        Return ``True`` if `other` is indistinguishable from this bond, or
+        ``False`` otherwise. `other` can be either a :class:`Bond` or a
+        :class:`GroupBond` object.
+        """
+        cython.declare(bond=BondNum, bp=gr.GroupBond)
+        if isinstance(other, BondNum):
+            bond = other
+            return (self.getOrderNum() == bond.getOrderNum())
+        elif isinstance(other, gr.GroupBond):
+            bp = other
+            return (self.getOrderNum() in bp.getOrderNum())
+
+    def isSpecificCaseOf(self, other):
+        """
+        Return ``True`` if `self` is a specific case of `other`, or ``False``
+        otherwise. `other` can be either a :class:`Bond` or a
+        :class:`GroupBond` object.
+        """
+        # There are no generic bond types, so isSpecificCaseOf is the same as equivalent
+        return self.equivalent(other)
+
+    def getOrderStr(self):
+        """
+        returns a string representing the bond order
+        """
+        if self.order == 1:
+            return 'S'
+        elif self.order == 1.5:
+            return 'B'
+        elif self.order == 2:
+            return 'D'
+        elif self.order == 3:
+            return 'T'
+        else:
+            raise ValueError("Bond order {} does not have string representation." +  \
+            "".format(self.order))
+        
+    def setOrderStr(self, newOrder):
+        """
+        set the bond order using a valid bond-order character
+        """
+        if newOrder == 'S':
+            self.order = 1
+        elif newOrder == 'D':
+            self.order = 2
+        elif newOrder == 'T':
+            self.order = 3
+        elif newOrder == 'B':
+            self.order = 1.5
+        else:
+            raise TypeError('Bond order {} is not hardcoded into this method'.format(newOrder))
+            
+            
+    def getOrderNum(self):
+        """
+        returns the bond order as a number
+        """
+        
+        return self.order
+            
+    def setOrderNum(self, newOrder):
+        """
+        change the bond order with a number
+        """
+        
+        self.order = newOrder
+        
+    def copy(self):
+        """
+        Generate a deep copy of the current bond. Modifying the
+        attributes of the copy will not affect the original.
+        """
+        #return Bond(self.vertex1, self.vertex2, self.order)
+        cython.declare(b=BondNum)
+        b = BondNum.__new__(BondNum)
+        b.vertex1 = self.vertex1
+        b.vertex2 = self.vertex2
+        b.order = self.order
+        return b
+
+    def isSingle(self):
+        """
+        Return ``True`` if the bond represents a single bond or ``False`` if
+        not.
+        """
+        return self.order == 1
+
+    def isDouble(self):
+        """
+        Return ``True`` if the bond represents a double bond or ``False`` if
+        not.
+        """
+        return self.order == 2
+
+    def isTriple(self):
+        """
+        Return ``True`` if the bond represents a triple bond or ``False`` if
+        not.
+        """
+        return self.order == 3
+
+    def isBenzene(self):
+        """
+        Return ``True`` if the bond represents a benzene bond or ``False`` if
+        not.
+        """
+        return self.order == 1.5
+
+    def incrementOrder(self):
+        """
+        Update the bond as a result of applying a CHANGE_BOND action to
+        increase the order by one.
+        """
+        if self.order <=2: 
+            self.order += 1
+        else:
+            raise gr.ActionError('Unable to increment Bond due to CHANGE_BOND action: '+\
+            'Bond order "{0}" is greater than 2.'.format(self.order))
+
+    def decrementOrder(self):
+        """
+        Update the bond as a result of applying a CHANGE_BOND action to
+        decrease the order by one.
+        """
+        if self.order >=1: 
+            self.order -= 1
+        else:
+            raise gr.ActionError('Unable to decrease Bond due to CHANGE_BOND action: '+\
+            'bond order "{0}" is less than 1.'.format(self.order))
+
+    def __changeBond(self, order):
+        """
+        Update the bond as a result of applying a CHANGE_BOND action,
+        where `order` specifies whether the bond is incremented or decremented
+        in bond order, and can be any real number.
+        """
+        self.order += order
+        if self.order < 0 or self.order >3:
+            raise gr.ActionError('Unable to update Bond due to CHANGE_BOND action: Invalid resulting order "{0}".'.format(self.order))
+
+    def applyAction(self, action):
+        """
+        Update the bond as a result of applying `action`, a tuple
+        containing the name of the reaction recipe action along with any
+        required parameters. The available actions can be found
+        :ref:`here <reaction-recipe-actions>`.
+        """
+        if action[0].upper() == 'CHANGE_BOND':
+            if isinstance(action[2],str):
+                self.setOrderStr(action[2])
+            else:
+                try: # try to see if addable
+                   self.__changeBond(action[2])
+                except TypeError:
+                    raise gr.ActionError('Unable to update Bond due to CHANGE_BOND action: Invalid order "{0}".'.format(action[2]))
+        else:
+            raise gr.ActionError('Unable to update GroupBond: Invalid action {0}.'.format(action))
+
+#################################################################################   
+    
+
 class Molecule(Graph):
     """
     A representation of a molecular structure using a graph data type, extending
