@@ -843,6 +843,20 @@ class BondNum(Edge):
                     raise gr.ActionError('Unable to update Bond due to CHANGE_BOND action: Invalid order "{0}".'.format(action[2]))
         else:
             raise gr.ActionError('Unable to update GroupBond: Invalid action {0}.'.format(action))
+            
+    @classmethod
+    def bondToBondNum(cls, bond):
+        """
+        this method converts the given Bond object to a 
+        BondNum object
+        """
+        cython.declare(bn = BondNum)
+        bn = BondNum.__new__(BondNum)
+        bn.vertex1 = bond.vertex1
+        bn.vertex2 = bond.vertex2
+        bn.setOrderStr(bond.getOrderStr())
+        return bn
+        
 
 #################################################################################   
     
@@ -1922,3 +1936,22 @@ class Molecule(Graph):
                     aromaticRings.append(ring0)
 
         return aromaticRings
+        
+    @classmethod
+    def moleculeBondToMoleculeBondNum(cls, molecule):
+        """
+        This method converts a molecule with edges held by Bond objects
+        to one held by BondNum objects.
+        
+        This is primarily used for testing the BondNum class. 
+        """
+        cython.declare(newMol = Molecule)
+        newMol = Molecule.__new__(Molecule)
+        for atom in molecule.atoms:
+            newMol.addVertex(atom)
+        for bond in molecule.bonds:
+            bondNum = BondNum.bondToBondNum(bond)
+            newMol.addEdge(bondNum)
+        newMol.symmetryNumber = molecule.symmetryNumber
+        newMol.multiplicity = molecule.multiplicity
+        return newMol
