@@ -303,7 +303,7 @@ def generateAromaticResonanceIsomers(mol):
                 aromatic = True
                 # Only change bonds if there are all 6 are aromatic.  Otherwise don't do anything
                 for bond in aromaticBonds:
-                    bond.order = 'B'
+                    bond.order = 1.5
 
     if aromatic:
         try:
@@ -588,7 +588,7 @@ def clarTransformation(mol, aromaticRing):
                 bondList.append(mol.getBond(atom1, atom2))
 
     for bond in bondList:
-        bond.order = 'B'
+        bond.order = 1.5
 
 
 class ILPSolutionError(Exception):
