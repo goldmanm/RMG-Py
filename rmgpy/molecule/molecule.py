@@ -434,12 +434,12 @@ class Bond(Edge):
     =================== =================== ====================================
     Attribute           Type                Description
     =================== =================== ====================================
-    `order`             ``str``             The :ref:`bond type <bond-types>`
+    `order`             ``short``             The :ref:`bond type <bond-types>`
     =================== =================== ====================================
 
     """
 
-    def __init__(self, atom1, atom2, order='S'):
+    def __init__(self, atom1, atom2, order=1):
         Edge.__init__(self, atom1, atom2)
         self.order = order
 
@@ -447,7 +447,7 @@ class Bond(Edge):
         """
         Return a human-readable string representation of the object.
         """
-        return self.order
+        return self.getOrderStr()
 
     def __repr__(self):
         """
@@ -475,13 +475,13 @@ class Bond(Edge):
         ``False`` otherwise. `other` can be either a :class:`Bond` or a
         :class:`GroupBond` object.
         """
-        cython.declare(bond=Bond, bp=gr.GroupBond)
-        if isinstance(other, Bond):
+        cython.declare(bond=BondNum, bp=gr.GroupBond)
+        if isinstance(other, BondNum):
             bond = other
-            return (self.order == bond.order)
+            return (self.getOrderNum() == bond.getOrderNum())
         elif isinstance(other, gr.GroupBond):
             bp = other
-            return (self.order in bp.order)
+            return (self.getOrderNum() in bp.getOrderNum())
 
     def isSpecificCaseOf(self, other):
         """
@@ -496,48 +496,47 @@ class Bond(Edge):
         """
         returns a string representing the bond order
         """
-        return self.order
+        if self.order == 1:
+            return 'S'
+        elif self.order == 1.5:
+            return 'B'
+        elif self.order == 2:
+            return 'D'
+        elif self.order == 3:
+            return 'T'
+        else:
+            raise ValueError("Bond order {} does not have string representation." +  \
+            "".format(self.order))
         
     def setOrderStr(self, newOrder):
         """
         set the bond order using a valid bond-order character
         """
-        if newOrder in ['S','D','T','B']:
-            self.order = newOrder
+        if newOrder == 'S':
+            self.order = 1
+        elif newOrder == 'D':
+            self.order = 2
+        elif newOrder == 'T':
+            self.order = 3
+        elif newOrder == 'B':
+            self.order = 1.5
         else:
-            raise ValueError("{} is not a valid bond order character".format(newOrder))
-        
+            raise TypeError('Bond order {} is not hardcoded into this method'.format(newOrder))
+            
+            
     def getOrderNum(self):
         """
         returns the bond order as a number
         """
         
-        if self.order == 'S':
-            return 1
-        elif self.order == 'D':
-            return 2
-        elif self.order == 'T':
-            return 3
-        elif self.order == 'B':
-            return 1.5
-        else:
-            raise TypeError('Bond order {} is not hardcoded into this method'.format(self.order))
+        return self.order
             
     def setOrderNum(self, newOrder):
         """
         change the bond order with a number
         """
-        if newOrder == 1:
-            self.order = 'S'
-        elif newOrder == 1.5:
-            self.order = 'B'
-        elif newOrder == 2:
-            self.order = 'D'
-        elif newOrder == 3:
-            self.order = 'T'
-        else:
-            raise ValueError("{} is not a valid bond order number for the Bond class." +  \
-            " Consider using a numeric bond class.".format(newOrder))
+        
+        self.order = newOrder
         
     def copy(self):
         """
@@ -545,8 +544,8 @@ class Bond(Edge):
         attributes of the copy will not affect the original.
         """
         #return Bond(self.vertex1, self.vertex2, self.order)
-        cython.declare(b=Bond)
-        b = Bond.__new__(Bond)
+        cython.declare(b=BondNum)
+        b = BondNum.__new__(BondNum)
         b.vertex1 = self.vertex1
         b.vertex2 = self.vertex2
         b.order = self.order
@@ -557,67 +556,60 @@ class Bond(Edge):
         Return ``True`` if the bond represents a single bond or ``False`` if
         not.
         """
-        return self.order == 'S'
+        return self.order == 1
 
     def isDouble(self):
         """
         Return ``True`` if the bond represents a double bond or ``False`` if
         not.
         """
-        return self.order == 'D'
+        return self.order == 2
 
     def isTriple(self):
         """
         Return ``True`` if the bond represents a triple bond or ``False`` if
         not.
         """
-        return self.order == 'T'
+        return self.order == 3
 
     def isBenzene(self):
         """
         Return ``True`` if the bond represents a benzene bond or ``False`` if
         not.
         """
-        return self.order == 'B'
+        return self.order == 1.5
 
     def incrementOrder(self):
         """
         Update the bond as a result of applying a CHANGE_BOND action to
         increase the order by one.
         """
-        if self.order == 'S': self.order = 'D'
-        elif self.order == 'D': self.order = 'T'
+        if self.order <=2: 
+            self.order += 1
         else:
-            raise gr.ActionError('Unable to update Bond due to CHANGE_BOND action: Invalid bond order "{0}".'.format(self.order))
+            raise gr.ActionError('Unable to increment Bond due to CHANGE_BOND action: '+\
+            'Bond order "{0}" is greater than 2.'.format(self.order))
 
     def decrementOrder(self):
         """
         Update the bond as a result of applying a CHANGE_BOND action to
         decrease the order by one.
         """
-        if self.order == 'D': self.order = 'S'
-        elif self.order == 'T': self.order = 'D'
+        if self.order >=1: 
+            self.order -= 1
         else:
-            raise gr.ActionError('Unable to update Bond due to CHANGE_BOND action: Invalid bond order "{0}".'.format(self.order))
+            raise gr.ActionError('Unable to decrease Bond due to CHANGE_BOND action: '+\
+            'bond order "{0}" is less than 1.'.format(self.order))
 
     def __changeBond(self, order):
         """
         Update the bond as a result of applying a CHANGE_BOND action,
         where `order` specifies whether the bond is incremented or decremented
-        in bond order, and should be 1 or -1.
+        in bond order, and can be any real number.
         """
-        if order == 1:
-            if self.order == 'S': self.order = 'D'
-            elif self.order == 'D': self.order = 'T'
-            else:
-                raise gr.ActionError('Unable to update Bond due to CHANGE_BOND action: Invalid bond order "{0}".'.format(self.order))
-        elif order == -1:
-            if self.order == 'D': self.order = 'S'
-            elif self.order == 'T': self.order = 'D'
-            else:
-                raise gr.ActionError('Unable to update Bond due to CHANGE_BOND action: Invalid bond order "{0}".'.format(self.order))
-        else:
-            raise gr.ActionError('Unable to update Bond due to CHANGE_BOND action: Invalid order "{0}".'.format(order))
+        self.order += order
+        if self.order < 0 or self.order >3:
+            raise gr.ActionError('Unable to update Bond due to CHANGE_BOND action: Invalid resulting order "{0}".'.format(self.order))
 
     def applyAction(self, action):
         """
@@ -627,14 +619,13 @@ class Bond(Edge):
         :ref:`here <reaction-recipe-actions>`.
         """
         if action[0].upper() == 'CHANGE_BOND':
-            if action[2] == 1:
-                self.incrementOrder()
-            elif action[2] == -1:
-                self.decrementOrder()
-            elif action[2] == 'B':
-                self.order = 'B'
+            if isinstance(action[2],str):
+                self.setOrderStr(action[2])
             else:
-                raise gr.ActionError('Unable to update Bond due to CHANGE_BOND action: Invalid order "{0}".'.format(action[2]))
+                try: # try to see if addable
+                   self.__changeBond(action[2])
+                except TypeError:
+                    raise gr.ActionError('Unable to update Bond due to CHANGE_BOND action: Invalid order "{0}".'.format(action[2]))
         else:
             raise gr.ActionError('Unable to update GroupBond: Invalid action {0}.'.format(action))
 
