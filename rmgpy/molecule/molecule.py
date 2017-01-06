@@ -413,10 +413,10 @@ class Atom(Vertex):
         num_B_bond = 0
         order = 0
         for _, bond in self.bonds.iteritems():
-            if bond.order == 'B':
+            if bond.order == 1.5:
                 num_B_bond += 1
             else:
-                order += bond_orders[bond.order]
+                order += bond.order
 
         if num_B_bond == 3:
             order += num_B_bond * 4/3.0
@@ -441,7 +441,10 @@ class Bond(Edge):
 
     def __init__(self, atom1, atom2, order=1):
         Edge.__init__(self, atom1, atom2)
-        self.order = order
+        if isinstance(order, str):
+            self.setOrderStr(order)
+        else:
+            self.order = order
 
     def __str__(self):
         """
