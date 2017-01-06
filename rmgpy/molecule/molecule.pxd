@@ -81,7 +81,7 @@ cdef class Atom(Vertex):
     
 cdef class Bond(Edge):
 
-    cdef public short order
+    cdef public float order
 
     cpdef bint equivalent(self, Edge other) except -2
 
@@ -91,7 +91,7 @@ cdef class Bond(Edge):
     
     cpdef setOrderStr(self, str newOrder)
     
-    cpdef short getOrderNum(self)
+    cpdef float getOrderNum(self)
     
     cpdef setOrderNum(self, short newOrder)
 
