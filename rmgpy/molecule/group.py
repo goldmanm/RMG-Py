@@ -542,9 +542,14 @@ class GroupBond(Edge):
     group if it matches *any* item in the list.
     """
 
-    def __init__(self, atom1, atom2, order=None):
+    def __init__(self, atom1, atom2, order=[]):
         Edge.__init__(self, atom1, atom2)
-        self.order = order or []
+        if len(order) > 0 and all([isinstance(oneOrder,str) for oneOrder in order]):
+            self.setOrderStr(order)
+        elif len(order) > 0 and any([isinstance(oneOrder,str) for oneOrder in order]):  
+            raise ActionError('order list given {} does not consist of only strings or only numbers'.format(order))
+        else:
+            self.order = order or []
 
     def __str__(self):
         """
