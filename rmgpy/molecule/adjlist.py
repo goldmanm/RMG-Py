@@ -978,11 +978,11 @@ def toOldAdjacencyList(atoms, multiplicity=None, label=None, group=False, remove
             # Bond type(s)
             if group:
                 if len(bond.order) == 1:
-                    adjlist += bond.order[0]
+                    adjlist += bond.getOrderStr()[0]
                 else:
-                    adjlist += '{{{0}}}'.format(','.join(bond.order))
+                    adjlist += '{{{0}}}'.format(','.join(bond.getOrderStr()))
             else:
-                adjlist += bond.order
+                adjlist += bond.getOrderStr()
             adjlist += '}'
 
         # Each atom begins on a new line
