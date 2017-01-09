@@ -401,7 +401,8 @@ def fromOBMol(mol, obmol):
     for obbond in openbabel.OBMolBondIter(obmol):
         # Process bond type
         oborder = obbond.GetBondOrder()
-        if obbond.IsAromatic() : oborder = 1.5
+        if oborder not in [1,2,3] and obbond.IsAromatic() : 
+            oborder = 1.5
 
         bond = Bond(mol.vertices[obbond.GetBeginAtomIdx() - 1], mol.vertices[obbond.GetEndAtomIdx() - 1], oborder)#python array indices start at 0
         mol.addBond(bond)
