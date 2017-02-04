@@ -254,6 +254,7 @@ class Atom(Vertex):
         a.atomType = self.atomType
         a.lonePairs = self.lonePairs
         a.coords = self.coords[:]
+        a.index = self.index
         return a
 
     def isHydrogen(self):
@@ -1819,3 +1820,10 @@ class Molecule(Graph):
             cycleList[i] = [self.vertices[vertices.index(v)] for v in cycleList[i]]
 
         return cycleList
+        
+    def assignAtomIndices(self):
+        """
+        Assigns an index to every atom in the molecule for tracking purposes.
+        """
+        for i, atom in enumerate(self.atoms):
+            atom.index = i
