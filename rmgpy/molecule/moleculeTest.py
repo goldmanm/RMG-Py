@@ -2094,6 +2094,18 @@ multiplicity 2
         asssr = mol.getAromaticSSSR()
         self.assertEqual(len(asssr), 0)
 
+    def testAssignAtomIndices(self):
+        """Test that the assignAtomIndices method works
+        
+        Looks for independent and not None
+        """
+        mol = Molecule(SMILES='CCCC')
+        mol.assignAtomIndices()
+        listOfIndexes = []
+        for atom in mol.atoms:
+            self.assertIsNotNone(atom.index)
+            self.assertNotIn(atom.index,listOfIndexes)
+            listOfIndexes.append(atom.index)
 
 ################################################################################
 
