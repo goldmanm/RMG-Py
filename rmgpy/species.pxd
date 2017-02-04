@@ -31,6 +31,7 @@ from rmgpy.quantity cimport ScalarQuantity, ArrayQuantity
 from rmgpy.thermo.model cimport HeatCapacityModel
 from rmgpy.statmech.conformer cimport Conformer
 from rmgpy.kinetics.model cimport TunnelingModel
+from rmgpy.molecule.molecule cimport Atom, Bond, Molecule
 
 ################################################################################
 
