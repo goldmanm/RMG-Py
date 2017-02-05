@@ -48,6 +48,7 @@ cdef class Species:
     cdef public object energyTransferModel
     cdef public dict props
     cdef public str aug_inchi
+    cdef public short symmetryNumber
     
     cpdef generateResonanceIsomers(self)
     

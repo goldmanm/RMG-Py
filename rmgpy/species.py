@@ -94,7 +94,8 @@ class Species(object):
 
     def __init__(self, index=-1, label='', thermo=None, conformer=None, 
                  molecule=None, transportData=None, molecularWeight=None, 
-                 energyTransferModel=None, reactive=True, props=None, aug_inchi=None):
+                 energyTransferModel=None, reactive=True, props=None, aug_inchi=None,
+                 symmetryNumber = -1):
         self.index = index
         self.label = label
         self.thermo = thermo
@@ -106,7 +107,7 @@ class Species(object):
         self.energyTransferModel = energyTransferModel        
         self.props = props or {}
         self.aug_inchi = aug_inchi
-        
+        self.symmetryNumber = symmetryNumber
         # Check multiplicity of each molecule is the same
         if molecule is not None and len(molecule)>1:
             mult = molecule[0].multiplicity
@@ -372,12 +373,18 @@ class Species(object):
     def getSymmetryNumber(self):
         """
         Get the symmetry number for the species, which is the highest symmetry number amongst
-        its resonance isomers.  This function is currently used for website purposes and testing only as it
+        its resonance isomers and the resonance hybrid.  
+        This function is currently used for website purposes and testing only as it
         requires additional calculateSymmetryNumber calls.
         """
-        cython.declare(symmetryNumber=cython.int)
-        symmetryNumber = numpy.max([mol.getSymmetryNumber() for mol in self.molecule])
-        return symmetryNumber
+        if self.symmetryNumber == -1:
+            cython.declare(resonanceHybrid = Molecule, maxSymmetryNum = cython.short)
+            resonanceHybrid = self.getResonanceHybrid()
+            self.symmetryNumber = resonanceHybrid.getSymmetryNumber()
+            maxSymmetryNum = max([mol.getSymmetryNumber() for mol in self.molecule])
+            if maxSymmetryNum > self.symmetryNumber:
+                self.symmetryNumber = maxSymmetryNum
+        return self.symmetryNumber
         
     def getResonanceHybrid(self):
         """
