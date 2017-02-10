@@ -304,22 +304,23 @@ def correctEntropy(isotopomer, isotopeless):
     Correct the entropy of the isotopomer by the following correction for symmetry:
 
     S(corrected) = S(original) + R*ln(sigma(isotopeless)) - R*ln(sigma(isotopomer))
+        
+    This method also copies the Enthalpy, Cp and other thermo parameters from isotopeless
     """
 
     # calculate -R ln (sigma) in SI units (J/K/mol)
-    Sisotopeless = - constants.R * math.log(isotopeless.molecule[0].calculateSymmetryNumber())
-    Sisotopomer = - constants.R * math.log(isotopomer.molecule[0].calculateSymmetryNumber())
+    Sisotopeless = - constants.R * math.log(isotopeless.getSymmetryNumber())
+    Sisotopomer = - constants.R * math.log(isotopomer.getSymmetryNumber())
 
     # convert species thermo to ThermoData object:
     nasa = isotopomer.thermo
-    thermo = nasa.toThermoData()
 
     # apply correction to entropy at 298K
-    thermo.S298.value_si -= Sisotopeless
-    thermo.S298.value_si += Sisotopomer
+    deltaS = Sisotopomer - Sisotopeless
+    nasa = nasa.changeBaseEntropy(deltaS)
 
     # put the corrected thermo back as a species attribute:
-    isotopomer.thermo = thermo
+    isotopomer.thermo = nasa
 
 def run(inputFile, isotopeInputFile, outputDir, original=None, isotopeLoc=None):
     """
