@@ -854,6 +854,15 @@ multiplicity 2
                     self.fail(("Expected a resonance form {0!r} that was not generated.\n"
                               "Only generated these:\n{1}").format(expected, '\n'.join([repr(g) for g in isomers])))
 
+    def testKeepIsomorphicStructures(self):
+        """Test that keepIsomorphic works for resonance structure generation."""
+        mol = Molecule(SMILES='C=C[CH2]')
+        mol.assignAtomIndices()
+        out = mol.generateResonanceIsomers(keepIsomorphic=True)
+
+        self.assertEqual(len(out), 2)
+        self.assertTrue(out[0].isIsomorphic(out[1]))
+        self.assertFalse(out[0].isIdentical(out[1]))
 
 class ClarTest(unittest.TestCase):
     """
