@@ -43,6 +43,7 @@ cdef class Atom(Vertex):
     cdef public AtomType atomType
     cdef public numpy.ndarray coords
     cdef public short lonePairs
+    cdef public int index
 
     
     cpdef bint equivalent(self, Vertex other) except -2
@@ -223,3 +224,5 @@ cdef class Molecule(Graph):
     cpdef list getDeterministicSmallestSetOfSmallestRings(self)
 
     cpdef kekulize(self)
+
+    cpdef assignAtomIndices(self)
