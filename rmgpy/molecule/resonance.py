@@ -128,7 +128,7 @@ def analyzeMolecule(mol):
 
     return features
 
-def generateResonanceStructures(mol):
+def generateResonanceStructures(mol, keepIsomorphic=False):
     """
     Generate and return all of the resonance structures for the input molecule.
 
@@ -161,22 +161,22 @@ def generateResonanceStructures(mol):
     if len(newMolList) > 0:
         if features['isRadical'] and not features['isArylRadical']:
             if features['isPolycyclicAromatic']:
-                _generateResonanceStructures(newMolList, [generateKekuleStructure])
-                _generateResonanceStructures(newMolList, [generateAdjacentResonanceStructures])
-                _generateResonanceStructures(newMolList, [generateClarStructures])
+                _generateResonanceStructures(newMolList, [generateKekuleStructure], keepIsomorphic)
+                _generateResonanceStructures(newMolList, [generateAdjacentResonanceStructures], keepIsomorphic)
+                _generateResonanceStructures(newMolList, [generateClarStructures], keepIsomorphic)
                 # Remove non-aromatic structures under the assumption that they aren't important resonance contributors
                 newMolList = [m for m in newMolList if m.isAromatic()]
             else:
                 _generateResonanceStructures(newMolList, [generateKekuleStructure,
-                                                          generateOppositeKekuleStructure])
-                _generateResonanceStructures(newMolList, [generateAdjacentResonanceStructures])
+                                                          generateOppositeKekuleStructure]), keepIsomorphic
+                _generateResonanceStructures(newMolList, [generateAdjacentResonanceStructures], keepIsomorphic)
         elif features['isPolycyclicAromatic']:
-            _generateResonanceStructures(newMolList, [generateClarStructures])
+            _generateResonanceStructures(newMolList, [generateClarStructures], keepIsomorphic)
         else:
             # The molecule is an aryl radical or stable mono-ring aromatic
             # In this case, generate the kekulized form
             _generateResonanceStructures(newMolList, [generateKekuleStructure,
-                                                      generateOppositeKekuleStructure])
+                                                      generateOppositeKekuleStructure], keepIsomorphic)
 
         # Check for isomorphism against the original molecule
         for newMol in newMolList:
@@ -190,19 +190,21 @@ def generateResonanceStructures(mol):
         molList.extend(newMolList)
     else:
         methodList = populateResonanceAlgorithms(features)
-        _generateResonanceStructures(molList, methodList)
+        _generateResonanceStructures(molList, methodList, keepIsomorphic)
 
     return molList
 
-def _generateResonanceStructures(molList, methodList, copy=False):
+def _generateResonanceStructures(molList, methodList, keepIsomorphic=False, copy=False):
     """
     Iteratively generate all resonance structures for a list of starting molecules using the specified methods.
 
     Args:
-        molList      starting list of molecules
-        methodList   list of resonance structure algorithms
-        copy         if False, append new resonance structures to input list (default)
-                     if True, make a new list with all of the resonance structures
+        molList             starting list of molecules
+        methodList          list of resonance structure algorithms
+        keepIsomorphic      if False, removes any structures that give isIsomorphic=True (default)
+                            if True, only remove structures that give isIdentical=True
+        copy                if False, append new resonance structures to input list (default)
+                            if True, make a new list with all of the resonance structures
     """
     cython.declare(index=cython.int, molecule=Molecule, newMolList=list, newMol=Molecule, mol=Molecule)
 
@@ -222,7 +224,9 @@ def _generateResonanceStructures(molList, methodList, copy=False):
         for newMol in newMolList:
             # Append to isomer list if unique
             for mol in molList:
-                if mol.isIsomorphic(newMol):
+                if not keepIsomorphic and mol.isIsomorphic(newMol):
+                    break
+                elif keepIsomorphic and mol.isIdentical(newMol):
                     break
             else:
                 molList.append(newMol)

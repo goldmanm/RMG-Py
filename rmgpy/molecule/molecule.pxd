@@ -217,7 +217,7 @@ cdef class Molecule(Graph):
 
     cpdef int calculateSymmetryNumber(self) except -1
 
-    cpdef list generateResonanceIsomers(self)
+    cpdef list generateResonanceIsomers(self, bint keepIsomorphic=?)
 
     cpdef tuple getAromaticSSSR(self, list SSSR=?)
 
