@@ -42,6 +42,7 @@ import re
 import numpy
 import urllib
 from collections import OrderedDict
+from itertools import izip
 
 import element as elements
 try:
@@ -1861,3 +1862,35 @@ class Molecule(Graph):
         """
         for i, atom in enumerate(self.atoms):
             atom.index = i
+
+    def isIdentical(self, other):
+        """
+        Performs isomorphism checking, with the added constraint that atom indices must be identical.
+
+        Primary use case is tracking atoms in reactions for reaction degeneracy determination.
+
+        Returns :data:`True` if two graphs are identical and :data:`False` otherwise.
+        """
+        cython.declare(atomIndicies=set, otherIndices=set, atomList=list, otherList=list, mapping = dict)
+
+        if not isinstance(other, Molecule):
+            raise TypeError('Got a {0} object for parameter "other", when a Molecule object is required.'.format(other.__class__))
+
+        # Get a set of atom indices for each molecule
+        atomIndices = set([atom.index for atom in self.atoms])
+        otherIndices = set([atom.index for atom in other.atoms])
+
+        if atomIndices == otherIndices:
+            # If the two molecules have the same indices, then they might be identical
+            atomList = sorted(self.atoms, key=lambda x: x.index)
+            otherList = sorted(other.atoms, key=lambda x: x.index)
+
+            # If matching atom indices gives a valid mapping, then the molecules are fully identical
+            mapping = {}
+            for atom1, atom2 in izip(atomList, otherList):
+                mapping[atom1] = atom2
+
+            return self.isMappingValid(other, mapping)
+        else:
+            # The molecules don't have the same set of indices, so they are not identical
+            return False
