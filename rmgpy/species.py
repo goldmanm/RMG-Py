@@ -381,9 +381,6 @@ class Species(object):
             cython.declare(resonanceHybrid = Molecule, maxSymmetryNum = cython.short)
             resonanceHybrid = self.getResonanceHybrid()
             self.symmetryNumber = resonanceHybrid.getSymmetryNumber()
-            maxSymmetryNum = max([mol.getSymmetryNumber() for mol in self.molecule])
-            if maxSymmetryNum > self.symmetryNumber:
-                self.symmetryNumber = maxSymmetryNum
         return self.symmetryNumber
         
     def getResonanceHybrid(self):
