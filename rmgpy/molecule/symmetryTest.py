@@ -391,7 +391,6 @@ class TestMoleculeSymmetry(unittest.TestCase):
         """
         molecule = Molecule().fromSMILES('c1ccccc1C')
         species = Species(molecule=[molecule])
-        species.generateResonanceIsomers()
         symmetryNumber = species.getSymmetryNumber()
         self.assertEqual(symmetryNumber, 6)
 
@@ -402,7 +401,6 @@ class TestMoleculeSymmetry(unittest.TestCase):
         """
         molecule = Molecule().fromSMILES('C1(C(C(C(C(C1C2CCC2)C3CCC3)C4CCC4)C5CCC5)C6CCC6)C7CCC7')
         species = Species(molecule=[molecule])
-        species.generateResonanceIsomers()
         symmetryNumber = species.getSymmetryNumber()
         self.assertEqual(symmetryNumber, 12)
 
@@ -413,7 +411,6 @@ class TestMoleculeSymmetry(unittest.TestCase):
         """
         molecule = Molecule().fromSMILES('c1ccccc1Cl')
         species = Species(molecule=[molecule])
-        species.generateResonanceIsomers()
         symmetryNumber = species.getSymmetryNumber()
         self.assertEqual(symmetryNumber, 2)
 
@@ -425,7 +422,6 @@ class TestMoleculeSymmetry(unittest.TestCase):
         """
         molecule = Molecule().fromSMILES('c1ccccc1[O]')
         species = Species(molecule=[molecule])
-        species.generateResonanceIsomers()
         symmetryNumber = species.getSymmetryNumber()
         self.assertEqual(symmetryNumber, 2)
 
@@ -436,7 +432,7 @@ class TestMoleculeSymmetry(unittest.TestCase):
         """
         molecule = Molecule().fromSMILES('c1ccccc1[O]')
         species = Species(molecule=[molecule])
-        aromatic_molecule = generateAromaticResonanceIsomers(molecule)[0]
+        aromatic_molecule = generateAromaticResonanceStructures(molecule)[0]
         symmetryNumber = aromatic_molecule.getSymmetryNumber()
         self.assertEqual(symmetryNumber, 2)
 
@@ -463,98 +459,98 @@ class TestMoleculeSymmetry(unittest.TestCase):
         """
         Test the Molecule.calculateSymmetryNumber() on CC
         """
-        self.assertEqual(Molecule().fromSMILES('CC').calculateSymmetryNumber(), 18)
+        self.assertEqual(Species().fromSMILES('CC').getSymmetryNumber(), 18)
     
     def testTotalSymmetryNumber1(self):
         """
         Test the Molecule.calculateSymmetryNumber() on C=C=[C]C(C)(C)[C]=C=C
         """
-        self.assertEqual(Molecule().fromSMILES('C=C=[C]C(C)(C)[C]=C=C').calculateSymmetryNumber(), 18)
+        self.assertEqual(Species().fromSMILES('C=C=[C]C(C)(C)[C]=C=C').getSymmetryNumber(), 18)
     
     @work_in_progress
     def testTotalSymmetryNumber2(self):
         """
         Test the Molecule.calculateSymmetryNumber() on C(=CC(c1ccccc1)C([CH]CCCCCC)C=Cc1ccccc1)[CH]CCCCCC
         """
-        self.assertEqual(Molecule().fromSMILES('C(=CC(c1ccccc1)C([CH]CCCCCC)C=Cc1ccccc1)[CH]CCCCCC').calculateSymmetryNumber(), '36?')
+        self.assertEqual(Species().fromSMILES('C(=CC(c1ccccc1)C([CH]CCCCCC)C=Cc1ccccc1)[CH]CCCCCC').getSymmetryNumber(), '36?')
     
     def testSymmetryNumberHydroxyl(self):
         """
         Test the Molecule.calculateSymmetryNumber() on [OH]
         """
-        self.assertEqual(Molecule().fromSMILES('[OH]').calculateSymmetryNumber(), 1)
+        self.assertEqual(Species().fromSMILES('[OH]').getSymmetryNumber(), 1)
        
     def testSymmetryNumberOxygen(self):
         """
         Test the Molecule.calculateSymmetryNumber() on O=O
         """
-        self.assertEqual(Molecule().fromSMILES('O=O').calculateSymmetryNumber(), 2)
+        self.assertEqual(Species().fromSMILES('O=O').getSymmetryNumber(), 2)
         
     def testSymmetryNumberDicarbon(self):
         """
         Test the Molecule.calculateSymmetryNumber() on [C]#[C]
         """
-        self.assertEqual(Molecule().fromSMILES('[C]#[C]').calculateSymmetryNumber(), 2)
+        self.assertEqual(Species().fromSMILES('[C]#[C]').getSymmetryNumber(), 2)
     
     def testSymmetryNumberHydrogen(self):
         """
         Test the Molecule.calculateSymmetryNumber() on [H][H]
         """
-        self.assertEqual(Molecule().fromSMILES('[H][H]').calculateSymmetryNumber(), 2)
+        self.assertEqual(Species().fromSMILES('[H][H]').getSymmetryNumber(), 2)
     
     def testSymmetryNumberAcetylene(self):
         """
         Test the Molecule.calculateSymmetryNumber() on C#C
         """
-        self.assertEqual(Molecule().fromSMILES('C#C').calculateSymmetryNumber(), 2)
+        self.assertEqual(Species().fromSMILES('C#C').getSymmetryNumber(), 2)
     
     def testSymmetryNumberButadiyne(self):
         """
         Test the Molecule.calculateSymmetryNumber() on C#CC#C
         """
-        self.assertEqual(Molecule().fromSMILES('C#CC#C').calculateSymmetryNumber(), 2)
+        self.assertEqual(Species().fromSMILES('C#CC#C').getSymmetryNumber(), 2)
     
     def testSymmetryNumberMethane(self):
         """
         Test the Molecule.calculateSymmetryNumber() on CH4
         """
-        self.assertEqual(Molecule().fromSMILES('C').calculateSymmetryNumber(), 12)
+        self.assertEqual(Species().fromSMILES('C').getSymmetryNumber(), 12)
     
     def testSymmetryNumberFormaldehyde(self):
         """
         Test the Molecule.calculateSymmetryNumber() on C=O
         """
-        self.assertEqual(Molecule().fromSMILES('C=O').calculateSymmetryNumber(), 2)
+        self.assertEqual(Species().fromSMILES('C=O').getSymmetryNumber(), 2)
     
     def testSymmetryNumberMethyl(self):
         """
         Test the Molecule.calculateSymmetryNumber() on [CH3]
         """
-        self.assertEqual(Molecule().fromSMILES('[CH3]').calculateSymmetryNumber(), 6)
+        self.assertEqual(Species().fromSMILES('[CH3]').getSymmetryNumber(), 6)
     
     def testSymmetryNumberWater(self):
         """
         Test the Molecule.calculateSymmetryNumber() on H2O
         """
-        self.assertEqual(Molecule().fromSMILES('O').calculateSymmetryNumber(), 2)
+        self.assertEqual(Species().fromSMILES('O').getSymmetryNumber(), 2)
     
     def testSymmetryNumberEthylene(self):
         """
         Test the Molecule.calculateSymmetryNumber() on C=C
         """
-        self.assertEqual(Molecule().fromSMILES('C=C').calculateSymmetryNumber(), 4)
+        self.assertEqual(Species().fromSMILES('C=C').getSymmetryNumber(), 4)
     
     def testSymmetryNumberEthenyl(self):
         """
         Test the Molecule.calculateSymmetryNumber() on C=[CH].
         """
-        self.assertEqual(Molecule().fromSMILES('C=[CH]').calculateSymmetryNumber(), 1)
+        self.assertEqual(Species().fromSMILES('C=[CH]').getSymmetryNumber(), 1)
     
     def testSymmetryNumberCyclic(self):
         """
         Test the Molecule.calculateSymmetryNumber() on C1=C=C=1
         """
-        self.assertEqual(Molecule().fromSMILES('C1=C=C=1').calculateSymmetryNumber(), 6)
+        self.assertEqual(Species().fromSMILES('C1=C=C=1').getSymmetryNumber(), 6)
     
 ################################################################################
 
