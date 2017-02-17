@@ -7,7 +7,7 @@ from external.wip import work_in_progress
 from rmgpy.molecule.molecule import Molecule
 from rmgpy.molecule.symmetry import calculateAtomSymmetryNumber, calculateAxisSymmetryNumber, calculateBondSymmetryNumber, calculateCyclicSymmetryNumber
 from rmgpy.species import Species
-from rmgpy.molecule.resonance import generateAromaticResonanceIsomers
+from rmgpy.molecule.resonance import generateAromaticResonanceStructures
 ################################################################################
 
 class TestMoleculeSymmetry(unittest.TestCase):
