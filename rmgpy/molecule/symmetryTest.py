@@ -269,7 +269,6 @@ class TestMoleculeSymmetry(unittest.TestCase):
         """
         molecule = Molecule().fromSMILES('c1ccccc1')
         species = Species(molecule=[molecule])
-        species.generateResonanceIsomers()
         symmetryNumber = species.getSymmetryNumber()
         self.assertEqual(symmetryNumber, 12)
 
@@ -279,7 +278,6 @@ class TestMoleculeSymmetry(unittest.TestCase):
         """
         molecule = Molecule().fromSMILES('[CH2]C=C')
         species = Species(molecule=[molecule])
-        species.generateResonanceIsomers()
         symmetryNumber = species.getSymmetryNumber()
         self.assertEqual(symmetryNumber, 2)
 
