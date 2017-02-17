@@ -285,7 +285,7 @@ class TestMoleculeSymmetry(unittest.TestCase):
 
     def testTotalSymmetryNumberPentenyl(self):
         """
-        Test the Species.getSymmetryNumer() for C[CH2]C=CC
+        Test the Species.getSymmetryNumer() for C[CH]C=CC
         and ensures that it is differet than the molecule object
         """
         spc = Species(molecule=[Molecule().fromSMILES('C[CH]C=CC')])
@@ -299,7 +299,7 @@ class TestMoleculeSymmetry(unittest.TestCase):
         This molecule's resonance isomer hybrid should return more symmetry
         than the base molecule object.
         """
-        molecule = Molecule().fromSMILES('C[CH2]C=CC')
+        molecule = Molecule().fromSMILES('C[CH]C=CC')
         species = Species(molecule=[molecule])
         self.assertEqual(molecule.getSymmetryNumber() * 2, species.getSymmetryNumber())
 
