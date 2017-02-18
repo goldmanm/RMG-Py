@@ -643,6 +643,252 @@ multiplicity 2
         self.assertAlmostEqual(reaction2.kinetics.A.value, ScalarQuantity(0.5,'cm^3/(mol*s)').value)
         self.assertAlmostEqual(reaction3.kinetics.A.value, ScalarQuantity(1,'cm^3/(mol*s)').value)
 
+    def testCompareIsotopomersWorksOnSpecies(self):
+        """
+        Test that compareIsotomers works on species objects
+        """
+        ethii = Species().fromAdjacencyList(
+        """
+1 C u0 p0 c0 i13 {2,S} {3,S} {4,S} {5,S}
+2 C u0 p0 c0 i13 {1,S} {6,S} {7,S} {8,S}
+3 H u0 p0 c0 {1,S}
+4 H u0 p0 c0 {1,S}
+5 H u0 p0 c0 {1,S}
+6 H u0 p0 c0 {2,S}
+7 H u0 p0 c0 {2,S}
+8 H u0 p0 c0 {2,S}
+        """)
+        ethi = Species().fromAdjacencyList(
+        """
+1 C u0 p0 c0 {2,S} {3,S} {4,S} {5,S}
+2 C u0 p0 c0 i13 {1,S} {6,S} {7,S} {8,S}
+3 H u0 p0 c0 {1,S}
+4 H u0 p0 c0 {1,S}
+5 H u0 p0 c0 {1,S}
+6 H u0 p0 c0 {2,S}
+7 H u0 p0 c0 {2,S}
+8 H u0 p0 c0 {2,S}
+        """)
+        self.assertTrue(compareIsotopomers(ethii,ethi))
+
+    def testCompareIsotopomersDoesNotAlterSpecies(self):
+        """
+        Test that compareIsotomers works on species objects
+        """
+        ethii = Species().fromAdjacencyList(
+        """
+1 C u0 p0 c0 i13 {2,S} {3,S} {4,S} {5,S}
+2 C u0 p0 c0 i13 {1,S} {6,S} {7,S} {8,S}
+3 H u0 p0 c0 {1,S}
+4 H u0 p0 c0 {1,S}
+5 H u0 p0 c0 {1,S}
+6 H u0 p0 c0 {2,S}
+7 H u0 p0 c0 {2,S}
+8 H u0 p0 c0 {2,S}
+        """)
+        ethi = Species().fromAdjacencyList(
+        """
+1 C u0 p0 c0 {2,S} {3,S} {4,S} {5,S}
+2 C u0 p0 c0 i13 {1,S} {6,S} {7,S} {8,S}
+3 H u0 p0 c0 {1,S}
+4 H u0 p0 c0 {1,S}
+5 H u0 p0 c0 {1,S}
+6 H u0 p0 c0 {2,S}
+7 H u0 p0 c0 {2,S}
+8 H u0 p0 c0 {2,S}
+        """)
+        compareIsotopomers(ethii,ethi)
+        
+        # ensure species still have labels
+        for atom in ethii.molecule[0].atoms:
+            if atom.element.symbol == 'C':
+                self.assertEqual(atom.element.isotope, 13, 'compareIsotopomer removed the isotope of a species.')
+
+    def testCompareIsotopomersFailsOnSpecies(self):
+        """
+        Test that compareIsotomers fails on species objects
+        """
+        ethane = Species().fromAdjacencyList(
+        """
+1 C u0 p0 c0 {2,S} {3,S} {4,S} {5,S}
+2 C u0 p0 c0 {1,S} {6,S} {7,S} {8,S}
+3 H u0 p0 c0 {1,S}
+4 H u0 p0 c0 {1,S}
+5 H u0 p0 c0 {1,S}
+6 H u0 p0 c0 {2,S}
+7 H u0 p0 c0 {2,S}
+8 H u0 p0 c0 {2,S}
+        """)
+        ethenei = Species().fromAdjacencyList(
+        """
+1 C u0 p0 c0 {2,D} {3,S} {4,S}
+2 C u0 p0 c0 i13 {1,D} {6,S} {5,S}
+3 H u0 p0 c0 {1,S}
+4 H u0 p0 c0 {1,S}
+5 H u0 p0 c0 {2,S}
+6 H u0 p0 c0 {2,S}
+        """)
+        self.assertFalse(compareIsotopomers(ethane,ethenei))
+
+    def testCompareIsotopomersWorksOnReactions(self):
+        """
+        Test that compareIsotomers works on different reaction objects
+        """
+        h = Species().fromAdjacencyList(
+        """
+multiplicity 2
+1 H u1 p0 c0
+        """)
+        h2 = Species().fromAdjacencyList(
+        """
+1 H u0 p0 c0 {2,S}
+2 H u0 p0 c0 {1,S}
+        """)
+        propanei = Species().fromAdjacencyList(
+        """
+1  C u0 p0 c0 {2,S} {4,S} {5,S} {6,S}
+2  C u0 p0 c0 {1,S} {3,S} {7,S} {8,S}
+3  C u0 p0 c0 i13 {2,S} {9,S} {10,S} {11,S}
+4  H u0 p0 c0 {1,S}
+5  H u0 p0 c0 {1,S}
+6  H u0 p0 c0 {1,S}
+7  H u0 p0 c0 {2,S}
+8  H u0 p0 c0 {2,S}
+9  H u0 p0 c0 {3,S}
+10 H u0 p0 c0 {3,S}
+11 H u0 p0 c0 {3,S}
+        """)
+        propane = Species().fromAdjacencyList(
+        """
+1  C u0 p0 c0 {2,S} {4,S} {5,S} {6,S}
+2  C u0 p0 c0 {1,S} {3,S} {7,S} {8,S}
+3  C u0 p0 c0 {2,S} {9,S} {10,S} {11,S}
+4  H u0 p0 c0 {1,S}
+5  H u0 p0 c0 {1,S}
+6  H u0 p0 c0 {1,S}
+7  H u0 p0 c0 {2,S}
+8  H u0 p0 c0 {2,S}
+9  H u0 p0 c0 {3,S}
+10 H u0 p0 c0 {3,S}
+11 H u0 p0 c0 {3,S}
+        """)
+        npropyli = Species().fromAdjacencyList(
+        """
+multiplicity 2
+1  C u0 p0 c0 {2,S} {6,S} {7,S} {8,S}
+2  C u0 p0 c0 {1,S} {3,S} {9,S} {10,S}
+3  C u1 p0 c0 i13 {2,S} {4,S} {5,S}
+4  H u0 p0 c0 {3,S}
+5  H u0 p0 c0 {3,S}
+6  H u0 p0 c0 {1,S}
+7  H u0 p0 c0 {1,S}
+8  H u0 p0 c0 {1,S}
+9  H u0 p0 c0 {2,S}
+10 H u0 p0 c0 {2,S}
+        """)
+        npropyl = Species().fromAdjacencyList(
+        """
+multiplicity 2
+1  C u0 p0 c0 {2,S} {6,S} {7,S} {8,S}
+2  C u0 p0 c0 {1,S} {3,S} {9,S} {10,S}
+3  C u1 p0 c0 {2,S} {4,S} {5,S}
+4  H u0 p0 c0 {3,S}
+5  H u0 p0 c0 {3,S}
+6  H u0 p0 c0 {1,S}
+7  H u0 p0 c0 {1,S}
+8  H u0 p0 c0 {1,S}
+9  H u0 p0 c0 {2,S}
+10 H u0 p0 c0 {2,S}
+        """)
+
+        reaction2 = TemplateReaction(reactants = [propanei,h],
+                            products = [npropyli,h2],
+                            family = 'H_Abstraction')
+        reaction3 = TemplateReaction(reactants = [propane,h],
+                            products = [h2,npropyl],
+                            family = 'H_Abstraction')
+        self.assertTrue(compareIsotopomers(reaction2,reaction3))
+        
+    def testCompareIsotopomersFailsOnReactions(self):
+        """
+        Test that compareIsotomers fails on different reaction objects
+        """
+        h = Species().fromAdjacencyList(
+        """
+multiplicity 2
+1 H u1 p0 c0
+        """)
+        h2 = Species().fromAdjacencyList(
+        """
+1 H u0 p0 c0 {2,S}
+2 H u0 p0 c0 {1,S}
+        """)
+        propanei = Species().fromAdjacencyList(
+        """
+1  C u0 p0 c0 {2,S} {4,S} {5,S} {6,S}
+2  C u0 p0 c0 {1,S} {3,S} {7,S} {8,S}
+3  C u0 p0 c0 i13 {2,S} {9,S} {10,S} {11,S}
+4  H u0 p0 c0 {1,S}
+5  H u0 p0 c0 {1,S}
+6  H u0 p0 c0 {1,S}
+7  H u0 p0 c0 {2,S}
+8  H u0 p0 c0 {2,S}
+9  H u0 p0 c0 {3,S}
+10 H u0 p0 c0 {3,S}
+11 H u0 p0 c0 {3,S}
+        """)
+        propane = Species().fromAdjacencyList(
+        """
+1  C u0 p0 c0 {2,S} {4,S} {5,S} {6,S}
+2  C u0 p0 c0 {1,S} {3,S} {7,S} {8,S}
+3  C u0 p0 c0 {2,S} {9,S} {10,S} {11,S}
+4  H u0 p0 c0 {1,S}
+5  H u0 p0 c0 {1,S}
+6  H u0 p0 c0 {1,S}
+7  H u0 p0 c0 {2,S}
+8  H u0 p0 c0 {2,S}
+9  H u0 p0 c0 {3,S}
+10 H u0 p0 c0 {3,S}
+11 H u0 p0 c0 {3,S}
+        """)
+        npropyli = Species().fromAdjacencyList(
+        """
+multiplicity 2
+1  C u0 p0 c0 {2,S} {6,S} {7,S} {8,S}
+2  C u0 p0 c0 {1,S} {3,S} {9,S} {10,S}
+3  C u1 p0 c0 i13 {2,S} {4,S} {5,S}
+4  H u0 p0 c0 {3,S}
+5  H u0 p0 c0 {3,S}
+6  H u0 p0 c0 {1,S}
+7  H u0 p0 c0 {1,S}
+8  H u0 p0 c0 {1,S}
+9  H u0 p0 c0 {2,S}
+10 H u0 p0 c0 {2,S}
+        """)
+        npropyl = Species().fromAdjacencyList(
+        """
+multiplicity 2
+1  C u0 p0 c0 {2,S} {6,S} {7,S} {8,S}
+2  C u0 p0 c0 {1,S} {3,S} {9,S} {10,S}
+3  C u1 p0 c0 {2,S} {4,S} {5,S}
+4  H u0 p0 c0 {3,S}
+5  H u0 p0 c0 {3,S}
+6  H u0 p0 c0 {1,S}
+7  H u0 p0 c0 {1,S}
+8  H u0 p0 c0 {1,S}
+9  H u0 p0 c0 {2,S}
+10 H u0 p0 c0 {2,S}
+        """)
+
+        reaction2 = TemplateReaction(reactants = [propanei,h],
+                            products = [npropyli,h2],
+                            family = 'H_Abstraction')
+        
+        magicReaction = TemplateReaction(reactants = [propane,h],
+                            products = [propanei,h],
+                            family = 'H_Abstraction')
+        self.assertFalse(compareIsotopomers(reaction2,magicReaction))
+        
     def testComputeProbabilities(self):
         """
         Test that the retrieval of isotopomer concentrations works.
