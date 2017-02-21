@@ -442,14 +442,18 @@ def correctAFactorsOfIsotopomers(rxnList):
     A(labeled) = A(non-labeled) * symmetry difference
     """
     
-    unlabeledRxn = removeIsotope(rxnList[0])
-    unlabeledSymmetry = __getReactionSymmetryNumber(unlabeledRxn)
+    # disabling this method since RMG degeneracy seems to take 
+    # into account most of these changes
     
-    for rxn in rxnList:
-        symmetry = __getReactionSymmetryNumber(rxn)
-        AFactorMultiplier = symmetry / unlabeledSymmetry
-        rxn.kinetics.changeRate(AFactorMultiplier)
-        
+    # unlabeledRxn = removeIsotope(rxnList[0])
+    # unlabeledSymmetry = __getReactionSymmetryNumber(unlabeledRxn)
+    
+    #for rxn in rxnList:
+    #    symmetry = __getReactionSymmetryNumber(rxn)
+    #    AFactorMultiplier = symmetry / unlabeledSymmetry
+    #    rxn.kinetics.changeRate(AFactorMultiplier)
+    pass
+
 def __getReactionSymmetryNumber(reaction):
     """
     This method finds the reaction symmetry number for a reaction. The procedure 
