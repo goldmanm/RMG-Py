@@ -454,7 +454,7 @@ def correctAFactorsOfIsotopomers(rxnList):
             unlabeledRxn = rxn
             break
     if unlabeledRxn is None:
-        raise Exception('No unlabeled reaction sent to correctAFactorsForIsotopomers. One reaction is {}'.format(str(rxnList[0])))
+        raise Exception('No unlabeled reaction sent to correctAFactorsForIsotopomers. The reactions in this list are {}'.format(str([str(rxn) for rxn in rxnList])))
     
     # disabling this method since RMG degeneracy seems to take 
     # into account most of these changes
@@ -479,7 +479,7 @@ def isEnriched(obj):
     
     if isinstance(obj,Species):
         for atom in obj.molecule[0].atoms:
-            if atom.element.isotope != -1:
+            if atom.element.isotope != -1 and not np.allclose(atom.element.mass, getElement(atom.element.symbol).mass):
                 return True
         return False
     elif isinstance(obj,Reaction):
