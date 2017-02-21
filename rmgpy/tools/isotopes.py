@@ -236,7 +236,7 @@ def cluster(objList):
     while unclustered:
         candidate = unclustered.pop()
         for cluster in clusters:
-            if any([compareIsotopomers(obj,candidate) for obj in cluster]):
+            if compareIsotopomers(cluster[0],candidate):
                 cluster.append(candidate)
                 break
         else:
@@ -441,7 +441,13 @@ def correctAFactorsOfIsotopomers(rxnList):
     Symmetry difference = symmetry labeled rxn / symmetry unlabeled rxn
     A(labeled) = A(non-labeled) * symmetry difference
     """
-    
+    # halfing Afactors when reactants are identical 
+    from rmgpy.kinetics.arrhenius import Arrhenius, ArrheniusEP
+    for rxn in rxnList:
+        if len(rxn.reactants) == 2:
+            if rxn.reactants[0].isIsomorphic(rxn.reactants[1]):
+                if isinstance(rxn.kinetics,Arrhenius) or isinstance(rxn.kinetics,ArrheniusEP):
+                    rxn.kinetics.A.value = rxn.kinetics.A.value / 2
     # disabling this method since RMG degeneracy seems to take 
     # into account most of these changes
     
@@ -452,7 +458,7 @@ def correctAFactorsOfIsotopomers(rxnList):
     #    symmetry = __getReactionSymmetryNumber(rxn)
     #    AFactorMultiplier = symmetry / unlabeledSymmetry
     #    rxn.kinetics.changeRate(AFactorMultiplier)
-    pass
+    
 
 def __getReactionSymmetryNumber(reaction):
     """
