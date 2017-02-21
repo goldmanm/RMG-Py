@@ -491,23 +491,29 @@ def run(inputFile, isotopeInputFile, outputDir, original=None, isotopeLoc=None):
     - a list of species objects corresponding to the isotopomers of the generated model
     - a pandas data frame with isotopomer speciation data as a function of reaction time
     """
-
+    logging.info("isotope: Starting the RMG isotope generation method 'run'")
     if not original:
+        logging.info("isotope: original model not found, generating new one in directory `rmg`")
         outputdirRMG = os.path.join(outputDir, 'rmg')
         os.mkdir(outputdirRMG)
 
         rmg = generateRMGModel(inputFile, outputdirRMG)
     else:
+        logging.info("isotope: original model being copied from previous RMG job in folder {}".format(original))
         outputdirRMG = original
         chemkinFile = os.path.join(outputdirRMG, 'chemkin', 'chem_annotated.inp')
         dictFile = os.path.join(outputdirRMG, 'chemkin', 'species_dictionary.txt')
         rmg = loadRMGJob(inputFile, chemkinFile, dictFile, generateImages=False, useChemkinNames=True)
 
     isotopeInputFile = os.path.abspath(isotopeInputFile)
+    
+    logging.info("isotope: creating RMG isotope input file")
     rmgIso = RMG(inputFile = isotopeInputFile)
+    logging.info("isotope: loading isotope input file")
     rmgIso.loadInput(rmgIso.inputFile)
 
     if not isotopeLoc:
+        logging.info("isotope: isotope model not found, generating new model")
         print('Generating isotopomers for the core species in {}'.format(outputdirRMG))
         isotopes = []
 
@@ -527,14 +533,15 @@ def run(inputFile, isotopeInputFile, outputDir, original=None, isotopeLoc=None):
             findCp0andCpInf(spc, spc.thermo)
             isotopes.extend(generateIsotopomers(spc, maxIsotopes))
 
+        logging.info("isotope: adding original species to the model")
         # add the original unlabeled species:
         isotopes.extend(rmg.reactionModel.core.species)
-        print('Number of isotopomers: {}'.format(len(isotopes)))
+        logging.info('Number of isotopomers: {}'.format(len(isotopes)))
 
         outputdirIso = os.path.join(outputDir, 'iso')
         os.mkdir(outputdirIso)
 
-        print('Generating RMG isotope model in {}'.format(outputdirIso))
+        logging.info('isotope: Generating RMG isotope model in {}'.format(outputdirIso))
         rmgIso = generateIsotopeModel(outputdirIso, rmg, isotopes)
     else:
         outputdirIso= isotopeLoc
@@ -542,22 +549,22 @@ def run(inputFile, isotopeInputFile, outputDir, original=None, isotopeLoc=None):
     chemkinFileIso = os.path.join(outputdirIso, 'chemkin', 'chem_annotated.inp')
     dictFileIso = os.path.join(outputdirIso, 'chemkin', 'species_dictionary.txt')
 
-    print('Loading isotope chemkin model.\nInput file: {}\nChemkin file: {}\nDict file: {}'\
+    logging.info('isotope: Loading isotope chemkin model.\nInput file: {}\nChemkin file: {}\nDict file: {}'\
         .format(isotopeInputFile, chemkinFileIso, dictFileIso))
 
     rmgIso = loadRMGJob(isotopeInputFile, chemkinFileIso, dictFileIso, generateImages=True, useChemkinNames=True)
     rmgIso.outputDirectory = outputdirIso
 
-    print('Clustering isotopomers...')
+    logging.info('isotope: Clustering isotopomers...')
     clusters = cluster(rmgIso.reactionModel.core.species)
 
-    print('Solving the Isotope model with the isotope input file...')
+    logging.info('isotope: Solving the Isotope model with the isotope input file...')
     spcData = solve(rmgIso)    
     
-    print('Generating concentrations for lumped species...')
+    logging.info('isotope: Generating concentrations for lumped species...')
     concs = retrieveConcentrations(spcData, clusters)
 
-    print('Computing isotopomer probabilities...')
+    logging.info('isotope: Computing isotopomer probabilities...')
     probs = []
     for df in concs:
         df = computeProbabilities(df.copy())
