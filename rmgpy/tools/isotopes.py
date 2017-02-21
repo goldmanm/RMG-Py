@@ -469,7 +469,7 @@ def correctAFactorsOfIsotopomers(rxnList):
         AFactorRatio = AFactor / unlabeledA
         
         if np.isclose(symmetryRatio,AFactorRatio):
-            logging.info("reaction {} initially had incorrect AFactor. Making it match unlabeled reaction {}".format(str(rxn.int),str(unlabeledRxn.int)))
+            logging.info("reaction {} initially had incorrect AFactor. Making it match unlabeled reaction {}".format(str(rxn.index),str(unlabeledRxn.index)))
             AFactorMultiplier = symmetry / unlabeledSymmetry
             rxn.kinetics.A.value = unlabeledRxn.kinetics.A.value * AFactorMultiplier
     
