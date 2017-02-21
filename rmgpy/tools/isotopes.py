@@ -445,7 +445,7 @@ def correctAFactorsOfIsotopomers(rxnList):
     for rxn in rxnList:
         if len(rxn.reactants) == 2:
             if rxn.reactants[0].isIsomorphic(rxn.reactants[1]):
-                if isInstance(rxn.kinetics,Arrhenius) or isInstance(rxn.kinetics,ArrheniusEP):
+                if isinstance(rxn.kinetics,Arrhenius) or isinstance(rxn.kinetics,ArrheniusEP):
                     rxn.kinetics.A.value = rxn.kinetics.A.value / 2
     # disabling this method since RMG degeneracy seems to take 
     # into account most of these changes
@@ -457,7 +457,7 @@ def correctAFactorsOfIsotopomers(rxnList):
     #    symmetry = __getReactionSymmetryNumber(rxn)
     #    AFactorMultiplier = symmetry / unlabeledSymmetry
     #    rxn.kinetics.changeRate(AFactorMultiplier)
-    pass
+    
 
 def __getReactionSymmetryNumber(reaction):
     """
