@@ -71,13 +71,14 @@ def initializeIsotopeModel(rmg, isotopes):
     # Load databases
     rmg.loadDatabase()
 
+    logging.info("isotope: Adding the isotopomers into the RMG model")
     for spc in isotopes:
         spec, isNew = rmg.reactionModel.makeNewSpecies(spc)
         spec.thermo = spc.thermo        
         if isNew:
             rmg.reactionModel.addSpeciesToEdge(spec)
             rmg.initialSpecies.append(spec)
-
+    logging.info("isotope: Adding standard species into the model")
     for spec in rmg.initialSpecies:
         spec.thermo = processThermoData(spec, spec.thermo)
         if not spec.reactive:
@@ -85,7 +86,7 @@ def initializeIsotopeModel(rmg, isotopes):
     for spec in rmg.initialSpecies:
         if spec.reactive:
             rmg.reactionModel.enlarge(spec)
-
+    logging.info("isotope: Finalizing the species additions")
     rmg.initializeReactionThresholdAndReactFlags()
     rmg.reactionModel.initializeIndexSpeciesDict()
 
@@ -99,11 +100,14 @@ def generateIsotopeModel(outputDirectory, rmg0, isotopes):
 
     Returns created RMG object.
     """
+    logging.info("isotope: creating the RMG model")
     rmg = RMG(inputFile=rmg0.inputFile, outputDirectory=outputDirectory)
     rmg.attach(ChemkinWriter(outputDirectory))
 
+    logging.info("isotope: making the isotope model for with all species")
     initializeIsotopeModel(rmg, isotopes)
 
+    logging.info("isotope: enlarging the isotope model")
     rmg.reactionModel.enlarge(reactEdge=True,
         unimolecularReact=rmg.unimolecularReact,
         bimolecularReact=rmg.bimolecularReact)
@@ -112,6 +116,7 @@ def generateIsotopeModel(outputDirectory, rmg0, isotopes):
     # across isotopomers
     correctAFactors(rmg.reactionModel.core.reactions)
 
+    logging.info("isotope: saving files")
     rmg.saveEverything()
 
     rmg.finish()     
@@ -532,7 +537,7 @@ def run(inputFile, isotopeInputFile, outputDir, original=None, isotopeLoc=None):
         except KeyError, e:
             print ('Could not find the maxIsotopicAtoms constraint in the input file. Exiting...')
             raise e
-
+        logging.info("isotope: adding all the new isotopomers")
         for spc in rmg.reactionModel.core.species:
             findCp0andCpInf(spc, spc.thermo)
             isotopes.extend(generateIsotopomers(spc, maxIsotopes))
