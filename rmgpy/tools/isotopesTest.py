@@ -1000,3 +1000,52 @@ multiplicity 2
 
         spcs = generateIsotopomers(spc, 3)
         self.assertEquals(len(spcs), 2)
+
+    def testIsEnriched(self):
+        """
+        ensures the Enriched method functions
+        """
+        npropyl = Species().fromAdjacencyList(
+        """
+multiplicity 2
+1  C u0 p0 c0 {2,S} {6,S} {7,S} {8,S}
+2  C u0 p0 c0 {1,S} {3,S} {9,S} {10,S}
+3  C u1 p0 c0 {2,S} {4,S} {5,S}
+4  H u0 p0 c0 {3,S}
+5  H u0 p0 c0 {3,S}
+6  H u0 p0 c0 {1,S}
+7  H u0 p0 c0 {1,S}
+8  H u0 p0 c0 {1,S}
+9  H u0 p0 c0 {2,S}
+10 H u0 p0 c0 {2,S}
+        """)
+        
+        npropyli = Species().fromAdjacencyList(
+        """
+multiplicity 2
+1  C u0 p0 c0 {2,S} {6,S} {7,S} {8,S}
+2  C u0 p0 c0 i13 {1,S} {3,S} {9,S} {10,S}
+3  C u1 p0 c0 {2,S} {4,S} {5,S}
+4  H u0 p0 c0 {3,S}
+5  H u0 p0 c0 {3,S}
+6  H u0 p0 c0 {1,S}
+7  H u0 p0 c0 {1,S}
+8  H u0 p0 c0 {1,S}
+9  H u0 p0 c0 {2,S}
+10 H u0 p0 c0 {2,S}
+        """)
+        
+        self.assertTrue(isEnriched(npropyli))
+        
+        self.assertFalse(isEnriched(npropyl))
+        
+        enrichedReaction = TemplateReaction(reactants = [npropyl],
+                            products = [npropyli],
+                            family = 'H_Abstraction')
+        self.assertTrue(isEnriched(enrichedReaction))
+               
+        bareReaction = TemplateReaction(reactants = [npropyl],
+                            products = [npropyl],
+                            family = 'H_Abstraction')
+                            
+        self.assertFalse(isEnriched(bareReaction))
