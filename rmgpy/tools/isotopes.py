@@ -440,7 +440,13 @@ def correctAFactorsOfIsotopomers(rxnList):
     Symmetry difference = symmetry labeled rxn / symmetry unlabeled rxn
     A(labeled) = A(non-labeled) * symmetry difference
     """
-    
+    # halfing Afactors when reactants are identical 
+    from rmgpy.kinetics.arrhenius import Arrhenius, ArrheniusEP
+    for rxn in rxnList:
+        if len(rxn.reactants) == 2:
+            if rxn.reactants[0].isIsomorphic(rxn.reactants[1]):
+                if isInstance(rxn.kinetics,Arrhenius) or isInstance(rxn.kinetics,ArrheniusEP):
+                    rxn.kinetics.A.value = rxn.kinetics.A.value / 2
     # disabling this method since RMG degeneracy seems to take 
     # into account most of these changes
     
