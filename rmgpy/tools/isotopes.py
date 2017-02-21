@@ -426,6 +426,14 @@ def correctAFactors(reactions):
     for rxnList in reactionClusters:
         correctAFactorsOfIsotopomers(rxnList)
 
+    # halfing Afactors when reactants are identical 
+    from rmgpy.kinetics.arrhenius import Arrhenius, ArrheniusEP
+    for rxn in rxnList:
+        if len(rxn.reactants) == 2:
+            if rxn.reactants[0].isIsomorphic(rxn.reactants[1]):
+                if isinstance(rxn.kinetics,Arrhenius) or isinstance(rxn.kinetics,ArrheniusEP):
+                    rxn.kinetics.A.value = rxn.kinetics.A.value / 2
+
 def correctAFactorsOfIsotopomers(rxnList):
     """
     Since different isotopomers sometimes have different symmetry
@@ -440,25 +448,49 @@ def correctAFactorsOfIsotopomers(rxnList):
     Symmetry difference = symmetry labeled rxn / symmetry unlabeled rxn
     A(labeled) = A(non-labeled) * symmetry difference
     """
-    # halfing Afactors when reactants are identical 
-    from rmgpy.kinetics.arrhenius import Arrhenius, ArrheniusEP
+    unlabeledRxn = None
     for rxn in rxnList:
-        if len(rxn.reactants) == 2:
-            if rxn.reactants[0].isIsomorphic(rxn.reactants[1]):
-                if isinstance(rxn.kinetics,Arrhenius) or isinstance(rxn.kinetics,ArrheniusEP):
-                    rxn.kinetics.A.value = rxn.kinetics.A.value / 2
+        if not isEnriched(rxn):
+            unlabeledRxn = rxn
+            break
+    if unlabeledRxn is None:
+        raise Exception('No unlabeled reaction sent to correctAFactorsForIsotopomers. One reaction is {}'.format(str(rxnList[0])))
+    
     # disabling this method since RMG degeneracy seems to take 
     # into account most of these changes
     
-    # unlabeledRxn = removeIsotope(rxnList[0])
-    # unlabeledSymmetry = __getReactionSymmetryNumber(unlabeledRxn)
+    unlabeledSymmetry = __getReactionSymmetryNumber(unlabeledRxn)
+    unlabeledA = unlabeledRxn.kinetics.A.value_si
+    for rxn in rxnList:
+        symmetry = __getReactionSymmetryNumber(rxn)
+        AFactor = unlabeledRxn.kinetics.A.value_si
+        
+        symmetryRatio = symmetry / unlabeledSymmetry
+        AFactorRatio = AFactor / unlabeledA
+        
+        if np.isclose(symmetryRatio,AFactorRatio):
+            logging.info("reaction {} initially had incorrect AFactor. Making it match unlabeled reaction {}".format(str(rxn.int),str(unlabeledRxn.int)))
+            AFactorMultiplier = symmetry / unlabeledSymmetry
+            rxn.kinetics.A.value = unlabeledRxn.kinetics.A.value * AFactorMultiplier
     
-    #for rxn in rxnList:
-    #    symmetry = __getReactionSymmetryNumber(rxn)
-    #    AFactorMultiplier = symmetry / unlabeledSymmetry
-    #    rxn.kinetics.changeRate(AFactorMultiplier)
+def isEnriched(obj):
+    """
+    """
     
-
+    if isinstance(obj,Species):
+        for atom in obj.molecule[0].atoms:
+            if atom.element.isotope != -1:
+                return True
+        return False
+    elif isinstance(obj,Reaction):
+        enriched = []
+        for spec in obj.reactants:
+            enriched.append(isEnriched(spec))
+        for spec in obj.products:
+            enriched.append(isEnriched(spec))
+        return any(enriched)
+    else:
+        raise TypeError('isEnriched only takes species and reaction objects. {} was sent'.format(str(type(obj))))
 def __getReactionSymmetryNumber(reaction):
     """
     This method finds the reaction symmetry number for a reaction. The procedure 
