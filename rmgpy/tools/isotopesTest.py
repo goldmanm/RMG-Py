@@ -203,8 +203,49 @@ class IsotopesTest(unittest.TestCase):
     )
 
         stripped = removeIsotope(ethi)
-        
+
         self.assertTrue(eth.isIsomorphic(stripped))
+
+    def testInplaceRemoveIsotopeForReactions(self):
+        """
+        Test that removeIsotope and redoIsotope works with reactions
+        """
+
+        eth = Species().fromAdjacencyList(
+        """
+1 C u0 p0 c0 {2,S} {3,S} {4,S} {5,S}
+2 C u0 p0 c0 {1,S} {6,S} {7,S} {8,S}
+3 H u0 p0 c0 {1,S}
+4 H u0 p0 c0 {1,S}
+5 H u0 p0 c0 {1,S}
+6 H u0 p0 c0 {2,S}
+7 H u0 p0 c0 {2,S}
+8 H u0 p0 c0 {2,S}
+        """
+    )
+
+        ethi = Species().fromAdjacencyList(
+        """
+1 C u0 p0 c0 {2,S} {3,S} {4,S} {5,S}
+2 C u0 p0 c0 i13 {1,S} {6,S} {7,S} {8,S}
+3 H u0 p0 c0 {1,S}
+4 H u0 p0 c0 {1,S}
+5 H u0 p0 c0 {1,S}
+6 H u0 p0 c0 {2,S}
+7 H u0 p0 c0 {2,S}
+8 H u0 p0 c0 {2,S}
+        """
+    )
+        unlabeledRxn = Reaction(reactants=[eth], products = [eth])
+        labeledRxn = Reaction(reactants=[ethi], products = [ethi])
+        storedLabeledRxn = labeledRxn.copy()
+        modifiedAtoms = removeIsotope(labeledRxn, inplace=True)
+
+        self.assertTrue(unlabeledRxn.isIsomorphic(labeledRxn))
+
+        redoIsotope(modifiedAtoms)
+
+        self.assertTrue(storedLabeledRxn.isIsomorphic(labeledRxn))
 
     def testCorrectAFactorsForMethylRecombination(self):
         """
