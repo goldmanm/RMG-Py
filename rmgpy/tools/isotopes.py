@@ -217,8 +217,10 @@ def cluster(objList):
     """
     Creates subcollections of isotopomers/reactions that 
     only differ in their isotopic labeling.
-    
-    This method works for either species or reactions
+
+    This method works for either species or reactions.
+
+    It is O(n^2) efficient
     """
 
     unclustered = copy(objList)
@@ -229,7 +231,7 @@ def cluster(objList):
     while unclustered:
         candidate = unclustered.pop()
         for cluster in clusters:
-            if any([removeIsotope(obj).isIsomorphic(removeIsotope(candidate)) for obj in cluster]):
+            if any([compareIsotopomers(obj,candidate) for obj in cluster]):
                 cluster.append(candidate)
                 break
         else:
@@ -237,42 +239,99 @@ def cluster(objList):
 
     return clusters
 
-def removeIsotope(labeledObj):
+def removeIsotope(labeledObj, inplace = False):
     """
     Create a deep copy of the first molecule of the species object and replace
     non-normal Element objects (of special isotopes) by the 
     expected isotope.
+
+    If the boolean `inplace` is True, the method remove the isotopic atoms of 
+    the Species/Reaction
+    inplace and returns a list of atom objects & element pairs for adding back
+    to the oritinal object. This should significantly improve speed of this method.
+
+    If successful, the non-inplace parts should be removed
     """
     if isinstance(labeledObj,Species):
-        stripped = labeledObj.copy(deep=True)
+        if inplace:
+            modifiedAtoms = []
+            for mol in labeledObj.molecule:
+                for atom in mol.atoms:
+                    if atom.element.isotope != -1:
+                        modifiedAtoms.append((atom,atom.element))
+                        atom.element = getElement(atom.element.symbol)
+            return modifiedAtoms
+        else:
+            stripped = labeledObj.copy(deep=True)
     
-        for atom in stripped.molecule[0].atoms:
-            if atom.element.isotope != -1:
-                atom.element = getElement(atom.element.symbol)
+            for atom in stripped.molecule[0].atoms:
+                if atom.element.isotope != -1:
+                    atom.element = getElement(atom.element.symbol)
     
         # only do it for the first molecule, generate the other resonance isomers.
-        stripped.molecule = [stripped.molecule[0]]
-        stripped.generateResonanceIsomers()
+            stripped.molecule = [stripped.molecule[0]]
+            stripped.generateResonanceIsomers()
     
         return stripped
 
     elif isinstance(labeledObj,Reaction):
-        strippedRxn = labeledObj.copy()
         
-        strippedReactants = []
-        for reactant in  strippedRxn.reactants:
-            strippedReactants.append(removeIsotope(reactant))
-        strippedRxn.reactants = strippedReactants
+        if inplace:
             
-        strippedProducts = []
-        for product in  strippedRxn.products:
-            strippedProducts.append(removeIsotope(product))
-        strippedRxn.products = strippedProducts
-        
-        return strippedRxn
+            atomList = []
+            for reactant in  labeledObj.reactants:
+                removed = removeIsotope(reactant,inplace)
+                if removed:
+                    atomList += removed
+            for product in labeledObj.products:
+                removed = removeIsotope(product,inplace)
+                if removed:
+                    atomList += removed
+
+            return atomList
+        else:
+            strippedRxn = labeledObj.copy()
+
+            strippedReactants = []
+            for reactant in  strippedRxn.reactants:
+                strippedReactants.append(removeIsotope(reactant,inplace))
+            strippedRxn.reactants = strippedReactants
+
+            strippedProducts = []
+            for product in  strippedRxn.products:
+                strippedProducts.append(removeIsotope(product,inplace))
+            strippedRxn.products = strippedProducts
+
+            return strippedRxn
     else:
         raise TypeError('Only Reaction and Species objects are supported')
-            
+
+def redoIsotope(atomList):
+    """
+    This takes a list of zipped atoms with their isotopes removed, from 
+    and elements.
+    """
+    for atom, element in atomList:
+        atom.element = element
+
+def compareIsotopomers(obj1, obj2):
+    """
+    This method takes two species or reaction objects and returns true if
+    they only differ in isotopic labeling, and false if they have other
+    differences.
+
+    The removeIsotope method can be slow, especially when comparing molecules
+    and reactions. This was due to many copying of objects.
+
+    This method avoid copying by storing the isotope and atom objects,
+    removing them, doing the comparison, and rewriting them when
+    finished the comparison.
+    """
+
+    atomlist = removeIsotope(obj1,inplace=True) + removeIsotope(obj2,inplace=True)
+    comparisonBool = obj1.isIsomorphic(obj2)
+    redoIsotope(atomlist)
+    return comparisonBool
 
 def retrieveConcentrations(spcdata, clusters):
     """
