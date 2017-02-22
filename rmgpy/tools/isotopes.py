@@ -506,17 +506,10 @@ def __getReactionSymmetryNumber(reaction):
     reactantSym = 1.
     for reactant in reaction.reactants:
         reactantSym *= reactant.getSymmetryNumber()
-    if len(reaction.reactants) == 2 and \
-            reaction.reactants[0].isIsomorphic(reaction.reactants[1]) and \
-            reaction.family.lower().startswith('r_recombination'):
-        reactantSym *= 2
     
     productSym = 1.
     for product in reaction.products:
         productSym *= product.getSymmetryNumber()
-    if len(reaction.products) == 2 and \
-            reaction.products[0].isIsomorphic(reaction.products[1]):
-        productSym *= 2
         
     return reactantSym / productSym
         
