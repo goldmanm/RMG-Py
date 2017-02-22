@@ -454,10 +454,10 @@ def correctAFactorsOfIsotopomers(rxnList):
             unlabeledRxn = rxn
             break
     if unlabeledRxn is None:
-        raise Exception('No unlabeled reaction sent to correctAFactorsForIsotopomers. The reactions in this list are {}'.format(str([str(rxn) for rxn in rxnList])))
-    
-    # disabling this method since RMG degeneracy seems to take 
-    # into account most of these changes
+        logging.info('No unlabeled reaction sent to correctAFactorsForIsotopomers. The reactions are of type {}'.format(str(rxnList[0])))
+        unlabeledRxn = removeIsotope(rxnList[0])
+        # note the kinetics will be off when comparing these, but it will
+        # be thermodynamically consistant
     
     unlabeledSymmetry = __getReactionSymmetryNumber(unlabeledRxn)
     unlabeledA = unlabeledRxn.kinetics.A.value_si
