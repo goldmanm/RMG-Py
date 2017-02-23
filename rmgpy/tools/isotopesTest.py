@@ -251,7 +251,7 @@ class IsotopesTest(unittest.TestCase):
         """
         Test that correct A factors are used for isotopomers with various symmetries - methyl recombination
         """   
-        correctAdjustment = 1.
+        correctAdjustment = 2.
         methyl = Species().fromAdjacencyList(
         """
 multiplicity 2
