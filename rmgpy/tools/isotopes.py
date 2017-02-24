@@ -236,7 +236,7 @@ def cluster(objList):
     while unclustered:
         candidate = unclustered.pop()
         for cluster in clusters:
-            if any([compareIsotopomers(obj,candidate) for obj in cluster]):
+            if compareIsotopomers(cluster[0],candidate):
                 cluster.append(candidate)
                 break
         else:
