@@ -71,9 +71,12 @@ class ReactionPairsError(Exception):
 class TemplateReaction(Reaction):
     """
     A Reaction object generated from a reaction family template. In addition to
-    the usual attributes, this class includes a `family` attribute to store the
-    family that it was created from, as well as a `estimator` attribute to indicate
-    whether it came from a rate rules or a group additivity estimate.
+    the usual attributes, this class includes the following attributes 
+    
+    `family`: attribute to store the family that it was created from
+    `estimator`: indicates whether it came from a rate rules or a group additivity estimate.
+    `reactantsMol`: a list of molecule objects used in the template
+    `productsMol`: a list of molecule objects resulting from the template
     """
 
     def __init__(self,
@@ -89,7 +92,9 @@ class TemplateReaction(Reaction):
                 family=None,
                 template=None,
                 estimator=None,
-                reverse=None
+                reverse=None,
+                reactantsMol = None,
+                productsMol = None,
                 ):
         Reaction.__init__(self,
                           index=index,
@@ -102,6 +107,10 @@ class TemplateReaction(Reaction):
                           degeneracy=degeneracy,
                           pairs=pairs
                           )
+        if not reactantsMol:
+            self.reactantsMol = reactantsMol
+        if not productsMol:
+            self.productsMol = productsMol
         self.family = family
         self.template = template
         self.estimator = estimator
@@ -133,6 +142,18 @@ class TemplateReaction(Reaction):
         """
         return self.family
 
+    def __getReactantsMol(self):
+        return [spec.molecule[0] for spec in self.reactants]
+    def __setReactantsMol(self, reactantsMol):
+        self.reactants = [Species(molecule=[mol]) for mol in reactantsMol]
+    reactantsMol = property(__getReactantsMol, __setReactantsMol)
+    
+    def __getProductsMol(self):
+        return [spec.molecule[0] for spec in self.products]
+    def __setProductsMol(self, productsMol):
+        self.products = [Species(molecule=[mol]) for mol in productsMol]
+    reactantsMol = property(__getProductsMol, __setProductsMol)
+    
 ################################################################################
 
 class ReactionRecipe:
@@ -392,7 +413,7 @@ class KineticsFamily(Database):
             logging.error('Error while reading old kinetics family template/recipe from {0!r}.'.format(path))
             raise
         # Construct the forward and reverse templates
-        reactants = [self.groups.entries[label] for label in self.forwardTemplate.reactants]
+        reactants = [self.groups.entries[label] for label in self.forwardTemplate.reactantsMol]
         if self.ownReverse:
             self.forwardTemplate = Reaction(reactants=reactants, products=reactants)
             self.reverseTemplate = None
@@ -401,7 +422,7 @@ class KineticsFamily(Database):
             self.forwardTemplate = Reaction(reactants=reactants, products=products)
             self.reverseTemplate = Reaction(reactants=reactants, products=products)
 
-        self.groups.numReactants = len(self.forwardTemplate.reactants)
+        self.groups.numReactants = len(self.forwardTemplate.reactantsMol)
 
         # Load forbidden structures if present
         try:
@@ -461,7 +482,7 @@ class KineticsFamily(Database):
                         if token == '->':
                             atArrow = True
                         elif token != '+' and not atArrow:
-                            self.forwardTemplate.reactants.append(token)
+                            self.forwardTemplate.reactantsMol = self.forwardTemplate.reactantsMol.append(token)
                         elif token != '+' and atArrow:
                             self.forwardTemplate.products.append(token)
         except IOError, e:
@@ -495,8 +516,8 @@ class KineticsFamily(Database):
         
         # Write the template
         ftemp.write('{0} -> {1}\n'.format(
-            ' + '.join([entry.label for entry in self.forwardTemplate.reactants]),
-            ' + '.join([entry.label for entry in self.forwardTemplate.products]),
+            ' + '.join([entry.label for entry in self.forwardTemplate.reactantsMol]),
+            ' + '.join([entry.label for entry in self.forwardTemplate.productsMol]),
         ))
         ftemp.write('\n')
         
@@ -542,16 +563,16 @@ class KineticsFamily(Database):
         self.boundaryAtoms = local_context.get('boundaryAtoms', None)
 
         # Generate the reverse template if necessary
-        self.forwardTemplate.reactants = [self.groups.entries[label] for label in self.forwardTemplate.reactants]
+        self.forwardTemplate.reactantsMol = [self.groups.entries[label] for label in self.forwardTemplate.reactantsMol]
         if self.ownReverse:
-            self.forwardTemplate.products = self.forwardTemplate.reactants[:]
+            self.forwardTemplate.productsMol = self.forwardTemplate.reactantsMol[:]
             self.reverseTemplate = None
             self.reverseRecipe = None
         else:
             self.reverse = local_context.get('reverse', None)
             if self.reverse is None:
                 self.reverse = '{0}_reverse'.format(self.label)
-            self.forwardTemplate.products = self.generateProductTemplate(self.forwardTemplate.reactants)
+            self.forwardTemplate.productsMol = self.generateProductTemplate(self.forwardTemplate.reactantsMol)
             self.reverseTemplate = Reaction(reactants=self.forwardTemplate.products, products=self.forwardTemplate.reactants)
             self.reverseRecipe = self.forwardRecipe.getReverse()
         
@@ -775,8 +796,8 @@ class KineticsFamily(Database):
 
         # Write the template
         f.write('template(reactants=[{0}], products=[{1}], ownReverse={2})\n\n'.format(
-            ', '.join(['"{0}"'.format(entry.label) for entry in self.forwardTemplate.reactants]),
-            ', '.join(['"{0}"'.format(entry.label) for entry in self.forwardTemplate.products]),
+            ', '.join(['"{0}"'.format(entry.label) for entry in self.forwardTemplate.reactantsMol]),
+            ', '.join(['"{0}"'.format(entry.label) for entry in self.forwardTemplate.productsMol]),
             self.ownReverse))
 
         # Write reverse name
@@ -1038,7 +1059,7 @@ class KineticsFamily(Database):
         R_Recombination).
         """
         if len(self.forwardTemplate.reactants) > len(self.groups.top):
-            return self.forwardTemplate.reactants
+            return self.forwardTemplate.reactantsMol
         else:
             return self.groups.top
     
@@ -1253,8 +1274,8 @@ class KineticsFamily(Database):
 
     def __createReaction(self, reactants, products, isForward):
         """
-        Create and return a new :class:`Reaction` object containing the
-        provided `reactants` and `products` as lists of :class:`Molecule`
+        Create and return a new :class:`TemplateReaction` object containing the
+        provided `reactantsMol` and `productsMol` as lists of :class:`Molecule`
         objects.
         """
 
@@ -1270,8 +1291,8 @@ class KineticsFamily(Database):
 
         # Create and return template reaction object
         reaction = TemplateReaction(
-            reactants = reactants if isForward else products,
-            products = products if isForward else reactants,
+            reactantsMol = reactants if isForward else products,
+            productsMol = products if isForward else reactants,
             degeneracy = 1,
             reversible = True,
             family = self.label,
@@ -1280,7 +1301,7 @@ class KineticsFamily(Database):
         # Store the labeled atoms so we can recover them later
         # (e.g. for generating reaction pairs and templates)
         labeledAtoms = []
-        for reactant in reaction.reactants:
+        for reactant in reaction.reactantsMol:
             for label, atom in reactant.getLabeledAtoms().items():
                 labeledAtoms.append((label, atom))
         reaction.labeledAtoms = labeledAtoms
@@ -1323,11 +1344,11 @@ class KineticsFamily(Database):
         if self.ownReverse:
             # for each reaction, make its reverse reaction and store in a 'reverse' attribute
             for rxn in reactionList:
-                reactions = self.__generateReactions(rxn.products, products=rxn.reactants, forward=True)
+                reactions = self.__generateReactions(rxn.productsMol, products=rxn.reactantsMol, forward=True)
                 if len(reactions) == 0:
                     logging.error("Expecting one matching reverse reaction, not zero in reaction family {0} for forward reaction {1}.\n".format(self.label, str(rxn)))
                     logging.error("There is likely a bug in the RMG-database kinetics reaction family involving a missing group, missing atomlabels, forbidden groups, etc.")
-                    for reactant in rxn.reactants:
+                    for reactant in rxn.reactantsMol:
                         logging.info("Reactant")
                         logging.info(reactant.toAdjacencyList())
                     for product in rxn.products:
@@ -1341,7 +1362,7 @@ class KineticsFamily(Database):
                     tempObject = self.forbidden
                     self.forbidden = ForbiddenStructures()  # Initialize with empty one
                     try:
-                        reactions = self.__generateReactions(rxn.products, products=rxn.reactants, forward=True)
+                        reactions = self.__generateReactions(rxn.productsMol, products=rxn.reactantsMol, forward=True)
                     finally:
                         self.forbidden = tempObject
                     if len(reactions) != 1:
@@ -1357,7 +1378,7 @@ class KineticsFamily(Database):
                     logging.info("Found the following reverse reactions")
                     for rxn0 in reactions:
                         logging.info(str(rxn0))
-                        for reactant in rxn0.reactants:
+                        for reactant in rxn0.reactantsMol:
                             logging.info("Reactant")
                             logging.info(reactant.toAdjacencyList())
                         for product in rxn0.products:
@@ -1378,9 +1399,10 @@ class KineticsFamily(Database):
     def calculateDegeneracy(self, reaction):
         """
         For a `reaction` given in the direction in which the kinetics are
-        defined, compute the reaction-path degeneracy.
+        defined, compute the reaction-path degeneracy. This works only for the 
+        the first molecule graph in each Species object helded in the reaction
         """
-        reactions = self.__generateReactions(reaction.reactants, products=reaction.products, forward=True)
+        reactions = self.__generateReactions(reaction.reactantsMol, products=reaction.productsMol, forward=True)
         if len(reactions) != 1:
             for reactant in reaction.reactants:
                 logging.error(reactant)
@@ -1423,7 +1445,7 @@ class KineticsFamily(Database):
             # Iterate over all resonance isomers of the reactant
             for molecule in reactants[0]:
 
-                mappings = self.__matchReactantToTemplate(molecule, template.reactants[0])
+                mappings = self.__matchReactantToTemplate(molecule, template.reactantsMol[0])
                 for map in mappings:
                     reactantStructures = [molecule]
                     try:
@@ -1446,8 +1468,8 @@ class KineticsFamily(Database):
                 for moleculeB in moleculesB:
 
                     # Reactants stored as A + B
-                    mappingsA = self.__matchReactantToTemplate(moleculeA, template.reactants[0])
-                    mappingsB = self.__matchReactantToTemplate(moleculeB, template.reactants[1])
+                    mappingsA = self.__matchReactantToTemplate(moleculeA, template.reactantsMol[0])
+                    mappingsB = self.__matchReactantToTemplate(moleculeB, template.reactantsMol[1])
 
                     # Iterate over each pair of matches (A, B)
                     for mapA in mappingsA:
@@ -1466,8 +1488,8 @@ class KineticsFamily(Database):
                     if reactants[0] is not reactants[1]:
 
                         # Reactants stored as B + A
-                        mappingsA = self.__matchReactantToTemplate(moleculeA, template.reactants[1])
-                        mappingsB = self.__matchReactantToTemplate(moleculeB, template.reactants[0])
+                        mappingsA = self.__matchReactantToTemplate(moleculeA, template.reactantsMol[1])
+                        mappingsB = self.__matchReactantToTemplate(moleculeB, template.reactantsMol[0])
 
                         # Iterate over each pair of matches (A, B)
                         for mapA in mappingsA:
@@ -1492,7 +1514,7 @@ class KineticsFamily(Database):
             index = 0
             for reaction in rxnList0:
             
-                products0 = reaction.products if forward else reaction.reactants
+                products0 = reaction.productsMol if forward else reaction.reactantsMol
                     
                 # Skip reactions that don't match the given products
                 match = False
@@ -1522,7 +1544,7 @@ class KineticsFamily(Database):
         while index0 < len(rxnList):
             reaction0 = rxnList[index0]
             
-            products0 = reaction0.products if forward else reaction0.reactants
+            products0 = reaction0.productsMol if forward else reaction0.reactantsMol
             products0 = [product.generateResonanceIsomers() for product in products0]
             
             # Remove duplicates from the reaction list
@@ -1530,7 +1552,7 @@ class KineticsFamily(Database):
             while index < len(rxnList):
                 reaction = rxnList[index]
             
-                products = reaction.products if forward else reaction.reactants
+                products = reaction.productsMol if forward else reaction.reactantsMol
                 
                 # We know the reactants are the same, so we only need to compare the products
                 match = False
@@ -1572,7 +1594,7 @@ class KineticsFamily(Database):
         for reaction in rxnList:
             
             # Restore the labeled atoms long enough to generate some metadata
-            for reactant in reaction.reactants:
+            for reactant in reaction.reactantsMol:
                 reactant.clearLabeledAtoms()
             for label, atom in reaction.labeledAtoms:
                 atom.label = label
@@ -1596,81 +1618,81 @@ class KineticsFamily(Database):
 
     def getReactionPairs(self, reaction):
         """
-        For a given `reaction` with properly-labeled :class:`Molecule` objects
-        as the reactants, return the reactant-product pairs to use when
-        performing flux analysis.
+        For a given `reaction` with :class:`Species` objects as reactants with
+        properly-labeled :class:`Molecule` objects as the reactants, return the 
+        reactant-product pairs to use when performing flux analysis.
         """
         pairs = []; error = False
         if len(reaction.reactants) == 1 or len(reaction.products) == 1:
             # When there is only one reactant (or one product), it is paired 
             # with each of the products (reactants)
-            for reactant in reaction.reactants:
-                for product in reaction.products:
-                    pairs.append([reactant,product])
+            for reactant in reaction.reactantsMol:
+                for product in reaction.productsMol:
+                    pairs.append([reactant,productMol])
         elif self.label.lower() == 'h_abstraction':
             # Hardcoding for hydrogen abstraction: pair the reactant containing
             # *1 with the product containing *3 and vice versa
             assert len(reaction.reactants) == len(reaction.products) == 2
-            if reaction.reactants[0].containsLabeledAtom('*1'):
-                if reaction.products[0].containsLabeledAtom('*3'):
-                    pairs.append([reaction.reactants[0],reaction.products[0]])
-                    pairs.append([reaction.reactants[1],reaction.products[1]])
-                elif reaction.products[1].containsLabeledAtom('*3'):
-                    pairs.append([reaction.reactants[0],reaction.products[1]])
-                    pairs.append([reaction.reactants[1],reaction.products[0]])
+            if reaction.reactantsMol[0].containsLabeledAtom('*1'):
+                if reaction.productsMol[0].containsLabeledAtom('*3'):
+                    pairs.append([reaction.reactantsMol[0],reaction.productsMol[0]])
+                    pairs.append([reaction.reactantsMol[1],reaction.productsMol[1]])
+                elif reaction.productsMol[1].containsLabeledAtom('*3'):
+                    pairs.append([reaction.reactantsMol[0],reaction.productsMol[1]])
+                    pairs.append([reaction.reactantsMol[1],reaction.productsMol[0]])
                 else:
                     error = True
-            elif reaction.reactants[1].containsLabeledAtom('*1'):
-                if reaction.products[1].containsLabeledAtom('*3'):
-                    pairs.append([reaction.reactants[0],reaction.products[0]])
-                    pairs.append([reaction.reactants[1],reaction.products[1]])
-                elif reaction.products[0].containsLabeledAtom('*3'):
-                    pairs.append([reaction.reactants[0],reaction.products[1]])
-                    pairs.append([reaction.reactants[1],reaction.products[0]])
+            elif reaction.reactantsMol[1].containsLabeledAtom('*1'):
+                if reaction.productsMol[1].containsLabeledAtom('*3'):
+                    pairs.append([reaction.reactantsMol[0],reaction.productsMol[0]])
+                    pairs.append([reaction.reactantsMol[1],reaction.productsMol[1]])
+                elif reaction.productsMol[0].containsLabeledAtom('*3'):
+                    pairs.append([reaction.reactantsMol[0],reaction.productsMol[1]])
+                    pairs.append([reaction.reactantsMol[1],reaction.productsMol[0]])
                 else:
                     error = True
         elif self.label.lower() == 'disproportionation':
             # Hardcoding for disproportionation: pair the reactant containing
             # *1 with the product containing *1
             assert len(reaction.reactants) == len(reaction.products) == 2
-            if reaction.reactants[0].containsLabeledAtom('*1'):
-                if reaction.products[0].containsLabeledAtom('*1'):
-                    pairs.append([reaction.reactants[0],reaction.products[0]])
-                    pairs.append([reaction.reactants[1],reaction.products[1]])
-                elif reaction.products[1].containsLabeledAtom('*1'):
-                    pairs.append([reaction.reactants[0],reaction.products[1]])
-                    pairs.append([reaction.reactants[1],reaction.products[0]])
+            if reaction.reactantsMol[0].containsLabeledAtom('*1'):
+                if reaction.productsMol[0].containsLabeledAtom('*1'):
+                    pairs.append([reaction.reactantsMol[0],reaction.productsMol[0]])
+                    pairs.append([reaction.reactantsMol[1],reaction.productsMol[1]])
+                elif reaction.productsMol[1].containsLabeledAtom('*1'):
+                    pairs.append([reaction.reactantsMol[0],reaction.productsMol[1]])
+                    pairs.append([reaction.reactantsMol[1],reaction.productsMol[0]])
                 else:
                     error = True
-            elif reaction.reactants[1].containsLabeledAtom('*1'):
-                if reaction.products[1].containsLabeledAtom('*1'):
-                    pairs.append([reaction.reactants[0],reaction.products[0]])
-                    pairs.append([reaction.reactants[1],reaction.products[1]])
-                elif reaction.products[0].containsLabeledAtom('*1'):
-                    pairs.append([reaction.reactants[0],reaction.products[1]])
-                    pairs.append([reaction.reactants[1],reaction.products[0]])
+            elif reaction.reactantsMol[1].containsLabeledAtom('*1'):
+                if reaction.productsMol[1].containsLabeledAtom('*1'):
+                    pairs.append([reaction.reactantsMol[0],reaction.productsMol[0]])
+                    pairs.append([reaction.reactantsMol[1],reaction.productsMol[1]])
+                elif reaction.productsMol[0].containsLabeledAtom('*1'):
+                    pairs.append([reaction.reactantsMol[0],reaction.productsMol[1]])
+                    pairs.append([reaction.reactantsMol[1],reaction.productsMol[0]])
                 else:
                     error = True
         elif self.label.lower() in ['substitution_o', 'substitutions']:
             # Hardcoding for Substitution_O: pair the reactant containing
             # *2 with the product containing *3 and vice versa
             assert len(reaction.reactants) == len(reaction.products) == 2
-            if reaction.reactants[0].containsLabeledAtom('*2'):
-                if reaction.products[0].containsLabeledAtom('*3'):
-                    pairs.append([reaction.reactants[0],reaction.products[0]])
-                    pairs.append([reaction.reactants[1],reaction.products[1]])
-                elif reaction.products[1].containsLabeledAtom('*3'):
-                    pairs.append([reaction.reactants[0],reaction.products[1]])
-                    pairs.append([reaction.reactants[1],reaction.products[0]])
+            if reaction.reactantsMol[0].containsLabeledAtom('*2'):
+                if reaction.productsMol[0].containsLabeledAtom('*3'):
+                    pairs.append([reaction.reactantsMol[0],reaction.productsMol[0]])
+                    pairs.append([reaction.reactantsMol[1],reaction.productsMol[1]])
+                elif reaction.productsMol[1].containsLabeledAtom('*3'):
+                    pairs.append([reaction.reactantsMol[0],reaction.productsMol[1]])
+                    pairs.append([reaction.reactantsMol[1],reaction.productsMol[0]])
                 else:
                     error = True
-            elif reaction.reactants[1].containsLabeledAtom('*2'):
-                if reaction.products[1].containsLabeledAtom('*3'):
-                    pairs.append([reaction.reactants[0],reaction.products[0]])
-                    pairs.append([reaction.reactants[1],reaction.products[1]])
-                elif reaction.products[0].containsLabeledAtom('*3'):
-                    pairs.append([reaction.reactants[0],reaction.products[1]])
-                    pairs.append([reaction.reactants[1],reaction.products[0]])
+            elif reaction.reactantsMol[1].containsLabeledAtom('*2'):
+                if reaction.productsMol[1].containsLabeledAtom('*3'):
+                    pairs.append([reaction.reactantsMol[0],reaction.productsMol[0]])
+                    pairs.append([reaction.reactantsMol[1],reaction.productsMol[1]])
+                elif reaction.productsMol[0].containsLabeledAtom('*3'):
+                    pairs.append([reaction.reactantsMol[0],reaction.productsMol[1]])
+                    pairs.append([reaction.reactantsMol[1],reaction.productsMol[0]])
                 else:
                     error = True
         else:

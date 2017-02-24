@@ -59,7 +59,6 @@ from rmgpy.pdep.reaction import calculateMicrocanonicalRateCoefficient
 from rmgpy.kinetics.diffusionLimited import diffusionLimiter
 
 ################################################################################
-
 class ReactionError(Exception):
     """
     An exception class for exceptional behavior involving :class:`Reaction`
@@ -105,7 +104,11 @@ class Reaction:
                  ):
         self.index = index
         self.label = label
+        if reactants is not None and isinstance(reactants, list) and isinstance(reactants[0], Molecule):
+            raise ReactionError('Reaction objects store Species, not Molecules, as reactants.')
         self.reactants = reactants
+        if products is not None and isinstance(products, list) and isinstance(products[0], Molecule):
+            raise ReactionError('Reaction objects store Species, not Molecules, as products.')
         self.products = products
         self.kinetics = kinetics
         self.reversible = reversible
@@ -113,7 +116,9 @@ class Reaction:
         self.duplicate = duplicate
         self.degeneracy = degeneracy
         self.pairs = pairs
-        
+        if reactants is not None and isinstance(reactants, list) and isinstance(reactants[0], Molecule):
+            raise ReactionError('Reaction objects store Species, not Molecules, as reactants.')
+            
         if diffusionLimiter.enabled:
             self.k_effective_cache = {}
 
