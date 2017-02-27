@@ -1149,7 +1149,17 @@ class CoreEdgeReactionModel:
         ensure it is supposed to be a core reaction (i.e. all of its reactants
         AND all of its products are in the list of core species).
         """
-        if rxn not in self.core.reactions:
+        isomorphicFound = False
+        for coreRxn in self.core.reactions:
+            if coreRxn.isIsomorphic(rxn):
+                isomorphicFound = True
+                if coreRxn.isIdentical(rxn):
+                    pass
+                else:
+                    if 
+                    coreRxn.degeneracy = coreRxn.degeneracy + rxn.degeneracy
+                    pass
+        if not isomorphicFound:
             self.core.reactions.append(rxn)
         if rxn in self.edge.reactions:
             self.edge.reactions.remove(rxn)
