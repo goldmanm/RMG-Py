@@ -475,6 +475,7 @@ def correctAFactorsOfIsotopomers(rxnList):
     
 def isEnriched(obj):
     """
+    Returns True if the species or reaction object has any enriched isotopes.
     """
     
     if isinstance(obj,Species):
