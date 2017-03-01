@@ -37,7 +37,7 @@ import os.path
 import logging
 import numpy as np
 import itertools
-from copy import copy
+from copy import copy, deepcopy
 import pandas as pd
 import shutil
 import math
@@ -55,6 +55,7 @@ from rmgpy.data.kinetics.family import TemplateReaction
 from rmgpy.rmg.listener import SimulationProfileWriter
 from rmgpy.thermo.thermoengine import processThermoData
 from rmgpy.data.thermo import findCp0andCpInf
+from rmgpy.data.rmg import getDB
 
 def initializeIsotopeModel(rmg, isotopes):
     """
@@ -116,6 +117,12 @@ def generateIsotopeModel(outputDirectory, rmg0, isotopes):
     # across isotopomers
     correctAFactors(rmg.reactionModel.core.reactions)
 
+    logging.info("isotope: clustering reactions")
+    clusters = cluster(rmg.reactionModel.core.reactions)
+    logging.info('isotope: fixing the directions of every reaction to a standard')
+    for isotopomerRxnList in clusters:
+        ensureReactionDirection(isotopomerRxnList)
+        
     logging.info("isotope: saving files")
     rmg.saveEverything()
 
@@ -311,6 +318,39 @@ def removeIsotope(labeledObj, inplace = False):
     else:
         raise TypeError('Only Reaction and Species objects are supported')
 
+def ensureReactionDirection(isotopomerRxns):
+    """
+    given a list of reactions with verying isotope labels but identical structure,
+    obtained from the `cluster` method, this method remakes the kinetics so that 
+    they all face the same direction.
+    """
+    
+    # find isotopeless reaction as standard
+    reference = isotopomerRxns[0]
+    family = getDB('kinetics').families[reference.family]
+    for rxn in isotopomerRxns:
+        if not compareIsotopomers(rxn, reference, eitherDirection=False):
+            # the reaction is in the oposite direction
+            
+            # reverse reactants and products
+            rxn.reactants, rxn.products = rxn.products, rxn.reactants
+            rxn.pairs = [(p,r) for r,p in rxn.pairs]
+
+            # calculateDegeneracy
+            rxnMols = TemplateReaction(reactants = [spec.molecule[0] for spec in rxn.reactants],
+                                       products = [spec.molecule[0] for spec in rxn.products])
+            forwardDegen = family.calculateDegeneracy(rxnMols)
+            
+            # set degeneracy to isotopeless reaction
+            rxn.degeneracy = reference.degeneracy
+            # make this reaction have kinetics of isotopeless reaction
+            newKinetics = deepcopy(reference.kinetics)
+            rxn.kinetics = newKinetics
+            
+            # set degeneracy to new reaction
+            rxn.degeneracy = forwardDegen
+
+
 def redoIsotope(atomList):
     """
     This takes a list of zipped atoms with their isotopes removed, from 
@@ -319,7 +359,7 @@ def redoIsotope(atomList):
     for atom, element in atomList:
         atom.element = element
 
-def compareIsotopomers(obj1, obj2):
+def compareIsotopomers(obj1, obj2, eitherDirection = True):
     """
     This method takes two species or reaction objects and returns true if
     they only differ in isotopic labeling, and false if they have other
@@ -334,7 +374,12 @@ def compareIsotopomers(obj1, obj2):
     """
 
     atomlist = removeIsotope(obj1,inplace=True) + removeIsotope(obj2,inplace=True)
-    comparisonBool = obj1.isIsomorphic(obj2)
+    if isinstance(obj1,Reaction):
+        comparisonBool = obj1.isIsomorphic(obj2, eitherDirection)
+    elif isinstance(obj1,Species):
+        comparisonBool = obj1.isIsomorphic(obj2)
+    else:
+        raise TypeError('Only Reaction and Speicies Objects are supported in compareIsotopomers')
     redoIsotope(atomlist)
     return comparisonBool
 
