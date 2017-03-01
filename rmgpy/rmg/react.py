@@ -172,6 +172,7 @@ def findDegeneracies(rxnList, useSpeciesReaction = True):
     This algorithm used to exist in family.__generateReactions, but was moved
     here because it didn't have any family dependence.
     """
+
     # These duplicates should be combined and the reaction degeneracy should be increased
     # Reaction degeneracy is only increased if two reaction are isomorphic but resulted
     # from different transition states.
@@ -216,6 +217,7 @@ def findDegeneracies(rxnList, useSpeciesReaction = True):
                 if isomorphic and sameTemplate:
                     # We already found the right sublist, so we can move on to the next rxn
                     break
+
             else:
                 # We did not break, which means that there was no isomorphic sublist, so create a new one
                 rxnSorted.append([rxn0])
