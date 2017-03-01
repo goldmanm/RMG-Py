@@ -115,7 +115,7 @@ def generateIsotopeModel(outputDirectory, rmg0, isotopes):
 
     # alter forward reaction rates to be thermodynamically consistant
     # across isotopomers
-    correctAFactors(rmg.reactionModel.core.reactions)
+    #correctAFactors(rmg.reactionModel.core.reactions)
 
     logging.info("isotope: clustering reactions")
     clusters = cluster(rmg.reactionModel.core.reactions)
