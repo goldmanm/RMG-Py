@@ -328,27 +328,28 @@ def ensureReactionDirection(isotopomerRxns):
     # find isotopeless reaction as standard
     reference = isotopomerRxns[0]
     family = getDB('kinetics').families[reference.family]
-    for rxn in isotopomerRxns:
-        if not compareIsotopomers(rxn, reference, eitherDirection=False):
-            # the reaction is in the oposite direction
-            
-            # reverse reactants and products
-            rxn.reactants, rxn.products = rxn.products, rxn.reactants
-            rxn.pairs = [(p,r) for r,p in rxn.pairs]
+    if family.ownReverse:
+        for rxn in isotopomerRxns:
+            if not compareIsotopomers(rxn, reference, eitherDirection=False):
+                # the reaction is in the oposite direction
 
-            # calculateDegeneracy
-            rxnMols = TemplateReaction(reactants = [spec.molecule[0] for spec in rxn.reactants],
-                                       products = [spec.molecule[0] for spec in rxn.products])
-            forwardDegen = family.calculateDegeneracy(rxnMols)
-            
-            # set degeneracy to isotopeless reaction
-            rxn.degeneracy = reference.degeneracy
-            # make this reaction have kinetics of isotopeless reaction
-            newKinetics = deepcopy(reference.kinetics)
-            rxn.kinetics = newKinetics
-            
-            # set degeneracy to new reaction
-            rxn.degeneracy = forwardDegen
+                # reverse reactants and products
+                rxn.reactants, rxn.products = rxn.products, rxn.reactants
+                rxn.pairs = [(p,r) for r,p in rxn.pairs]
+
+                # calculateDegeneracy
+                rxnMols = TemplateReaction(reactants = [spec.molecule[0] for spec in rxn.reactants],
+                                           products = [spec.molecule[0] for spec in rxn.products])
+                forwardDegen = family.calculateDegeneracy(rxnMols)
+
+                # set degeneracy to isotopeless reaction
+                rxn.degeneracy = reference.degeneracy
+                # make this reaction have kinetics of isotopeless reaction
+                newKinetics = deepcopy(reference.kinetics)
+                rxn.kinetics = newKinetics
+
+                # set degeneracy to new reaction
+                rxn.degeneracy = forwardDegen
 
 
 def redoIsotope(atomList):
