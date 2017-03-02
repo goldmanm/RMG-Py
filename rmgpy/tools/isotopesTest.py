@@ -7,10 +7,40 @@ from rmgpy.tools.loader import loadRMGJob
 import rmgpy
 from rmgpy.species import Species
 from rmgpy.tools.isotopes import *
-
+from external.wip import work_in_progress
+from rmgpy import settings
 from rmgpy.reaction import Reaction
 from rmgpy.data.kinetics.family import TemplateReaction
 from rmgpy.kinetics.arrhenius import Arrhenius
+
+from rmgpy.data.rmg import RMGDatabase
+
+def setUpModule():
+    """A function that is run ONCE before all unit tests in this module."""
+    global database
+    database = RMGDatabase()
+    database.load(
+        path=os.path.join(settings['test_data.directory'], 'testing_database'),
+        kineticsFamilies=[
+            'H_Abstraction',
+        ],
+        testing=True,
+        depository=False,
+        solvation=False,
+    )
+    database.loadForbiddenStructures()
+
+    # Prepare the database by loading training reactions and averaging the rate rules
+    for family in database.kinetics.families.values():
+        family.addKineticsRulesFromTrainingSet(thermoDatabase=database.thermo)
+        family.fillKineticsRulesByAveragingUp(verbose=True)
+
+
+def tearDownModule():
+    """A function that is run ONCE after all unit tests in this module."""
+    from rmgpy.data import rmg
+    rmg.database = None
+
 
 class IsotopesTest(unittest.TestCase):
 
@@ -247,6 +277,109 @@ class IsotopesTest(unittest.TestCase):
 
         self.assertTrue(storedLabeledRxn.isIsomorphic(labeledRxn))
 
+    def testEnsureReactionDirection(self):
+        """
+        Tests that the direction of the reaction is constant for every isotopomer
+        """
+
+        # get reactions
+        
+        methyl = Species().fromSMILES('[CH3]')
+        methyli = Species().fromAdjacencyList(
+        """
+multiplicity 2
+1 C u1 p0 c0 i13 {2,S} {3,S} {4,S}
+2 H u0 p0 c0 {1,S}
+3 H u0 p0 c0 {1,S}
+4 H u0 p0 c0 {1,S}
+        """)
+        methane = Species().fromSMILES('C')
+        methanei = Species().fromAdjacencyList(
+        """
+1 C u0 p0 c0 i13 {2,S} {3,S} {4,S} {5,S}
+2 H u0 p0 c0 {1,S}
+3 H u0 p0 c0 {1,S}
+4 H u0 p0 c0 {1,S}
+5 H u0 p0 c0 {1,S}
+        """)
+        
+        dipropyl = Species().fromSMILES('[CH2]C[CH2]')
+        dipropyli = Species().fromAdjacencyList("""
+multiplicity 3
+1 C u1 p0 c0 {2,S} {3,S} {4,S}
+2 H u0 p0 c0 {1,S}
+3 H u0 p0 c0 {1,S}
+4 C u0 p0 c0 {1,S} {5,S} {8,S} {9,S}
+5 C u1 p0 c0 i13 {4,S} {6,S} {7,S}
+6 H u0 p0 c0 {5,S}
+7 H u0 p0 c0 {5,S}
+8 H u0 p0 c0 {4,S}
+9 H u0 p0 c0 {4,S}
+        """)
+        
+        propyl = Species().fromSMILES('CC[CH2]')
+        propyli = Species().fromAdjacencyList("""
+multiplicity 2
+1  C u1 p0 c0 i13 {2,S} {3,S} {4,S}
+2  H u0 p0 c0 {1,S}
+3  H u0 p0 c0 {1,S}
+4  C u0 p0 c0 {1,S} {5,S} {6,S} {7,S}
+5  C u0 p0 c0 {4,S} {8,S} {9,S} {10,S}
+6  H u0 p0 c0 {4,S}
+7  H u0 p0 c0 {4,S}
+8  H u0 p0 c0 {5,S}
+9  H u0 p0 c0 {5,S}
+10 H u0 p0 c0 {5,S}
+        """)
+        propyl.label='propyl'
+        propyli.label='propyli'
+        dipropyl.label = 'dipropyl'
+        dipropyli.label = 'dipropyli'
+        methyl.label = 'methyl'
+        methyli.label = 'methyli'
+        methane.label = 'methane'
+        methanei.label = 'methanei'
+        # make reactions
+        rxn1 = TemplateReaction(reactants=[dipropyl, methane],
+                                products =[methyl, propyl],
+                                kinetics = Arrhenius(A=(1.,'cm^3/(mol*s)'), Ea = (2., 'kJ/mol'), n=0.),
+                                family = 'H_Abstraction',
+                                degeneracy = 8,
+                                pairs = [[methane,methyl],[dipropyl,propyl]])
+        rxn2 = TemplateReaction(reactants=[methyli, propyl],
+                                products =[methanei, dipropyl],
+                                kinetics = Arrhenius(A=(1e-20,'cm^3/(mol*s)'), Ea = (2., 'kJ/mol'), n=0.),
+                                family = 'H_Abstraction',
+                                degeneracy = 3,
+                                pairs = [[methyli,methanei],[propyl,dipropyl]])
+        rxn3 = TemplateReaction(reactants=[methane, dipropyli],
+                                products =[methyl, propyli],
+                                kinetics = Arrhenius(A=(0.5,'cm^3/(mol*s)'), Ea = (2., 'kJ/mol'), n=0.),
+                                family = 'H_Abstraction',
+                                degeneracy = 4,
+                                pairs = [[methane,methyl],[dipropyli,propyli]])
+        rxn4 = TemplateReaction(reactants=[methyli, propyli],
+                                products =[methanei, dipropyli],
+                                kinetics = Arrhenius(A=(1e-20,'cm^3/(mol*s)'), Ea = (2., 'kJ/mol'), n=0.),
+                                family = 'H_Abstraction',
+                                degeneracy = 3,
+                                pairs = [[methyli,methanei],[propyli,dipropyli]])
+        
+        rxns = [rxn1, rxn2, rxn3, rxn4]
+
+        # call method
+        ensureReactionDirection(rxns)
+        
+        for rxn in rxns:
+            # ensure there is a methane in reactants for each reaction
+            self.assertTrue(any([compareIsotopomers(methane, reactant) for reactant in rxn.reactants]),msg='ensureReactionDirection didnt flip the proper reactants and products')
+            
+            # ensure kinetics is correct
+            if any([dipropyli.isIsomorphic(reactant) for reactant in rxn.reactants]):
+                self.assertAlmostEqual(rxn.kinetics.A.value, 0.5, msg= 'The A value returned, {0}, is incorrect. Check the reactions degeneracy and how A.value is obtained. The reaction is:{1}'.format(rxn.kinetics.A.value, rxn))
+            else:
+                self.assertAlmostEqual(rxn.kinetics.A.value, 1. , msg='The A value returned, {0}, is incorrect. Check the reactions degeneracy and how A.value is obtained. The reaction is:{1}'.format(rxn.kinetics.A.value, rxn))
+        
     def testCorrectAFactorsForMethylRecombination(self):
         """
         Test that correct A factors are used for isotopomers with various symmetries - methyl recombination
