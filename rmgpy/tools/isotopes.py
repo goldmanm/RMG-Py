@@ -320,7 +320,7 @@ def removeIsotope(labeledObj, inplace = False):
 
 def ensureReactionDirection(isotopomerRxns):
     """
-    given a list of reactions with verying isotope labels but identical structure,
+    given a list of reactions with varying isotope labels but identical structure,
     obtained from the `cluster` method, this method remakes the kinetics so that 
     they all face the same direction.
     """
@@ -332,7 +332,7 @@ def ensureReactionDirection(isotopomerRxns):
         for rxn in isotopomerRxns:
             if not compareIsotopomers(rxn, reference, eitherDirection=False):
                 # the reaction is in the oposite direction
-
+                logging.info('isotope: identified flipped reaction direction in reaction number {} of reaction {}. Altering the direction.'.format(rxn.index, str(rxn)))
                 # reverse reactants and products
                 rxn.reactants, rxn.products = rxn.products, rxn.reactants
                 rxn.pairs = [(p,r) for r,p in rxn.pairs]
