@@ -562,6 +562,28 @@ def __getReactionSymmetryNumber(reaction):
     return reactantSym / productSym
         
     
+    
+def __compareReactionSymmetry(labeled_rxn, unlabeld_rxn):
+    """
+    compares the symmetry number of two reactions which only vary in labeling
+    of isotopes.. Since there is no transition
+    state, this method assumes that the transition state's symmetry is only
+    decreased when a reactant and it's flux pair both have lower symmetry number.
+    If a change in symmetry occurs only in reactant or product, the TS symmetry
+    is assumed not to change (since that symmery would be broken in the TS as well)
+    """
+    A_factor_modification = 1
+    for pair in labeled_rxn.pairs:
+        for pair2 in labeled_rxn.pairs:
+            # if the pair is corresponding
+            if all([compareIsotopomers(pair[0],pair2[0]), compareIsotopomers(pair[1],pair2[1])]):
+                reactant_symmetry_ratio = float(pair[0].getSymmetryNumber()) / pair2[0].getSymmetryNumber()
+                # if the reactant symmetry changes
+                if abs(reactant_symmetry_ratio - 1) > 1e-5:
+                    product_symmetry_ratio = float(pair[1].getSymmetryNumber()) / pair2[1].getSymmetryNumber()
+                    if product_symmetry_ratio != reactant_symmetry_ratio:
+                        A_factor_modification *= reactant_symmetry_ratio
+                    
 def run(inputFile, isotopeInputFile, outputDir, original=None, isotopeLoc=None):
     """
     Accepts two input files, one input file with the RMG-Py model to generate, NOT
