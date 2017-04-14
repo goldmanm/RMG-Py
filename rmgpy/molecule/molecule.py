@@ -667,6 +667,7 @@ class Molecule(Graph):
     ======================= =========== ========================================
     `symmetryNumber`        ``int``     The (estimated) external + internal symmetry number of the molecule
     `multiplicity`          ``int``     The multiplicity of this species, multiplicity = 2*total_spin+1
+    `props`                 ``dict``    A list of properties describing the state of the molecule.
     ======================= =========== ========================================
 
     A new molecule object can be easily instantiated by passing the `SMILES` or
@@ -1883,12 +1884,34 @@ class Molecule(Graph):
         """
         kekulize(self)
 
-    def assignAtomIDs(self):
+    def assignAtomIDs(self, start=-1):
         """
-        Assigns an ID number to every atom in the molecule for tracking purposes.
+        Assigns an index to every atom in the molecule for tracking purposes.
+        If start is not specified, the system will use random integers for each index
+        Otherwise the system will start at `start` and increment one each time.
         """
+
+        from random import randint
         for i, atom in enumerate(self.atoms):
-            atom.id = i
+            if start == -1:
+                # use entire range of integers to label atoms
+                atom.id = randint(-2**15,2**15)
+            else:
+                atom.id = i + start
+        if not self.atomIDValid():
+            self.assignAtomIDs(start=randint(-2**15,2**14))
+
+    def atomIDValid(self):
+        """
+        Checks to see if the atom IDs are valid in this structure
+        """
+        num_atoms = len(self.atoms)
+        num_IDs = len(set([atom.id for atom in self.atoms]))
+
+        if num_atoms == num_IDs:
+            # all are unique
+            return True
+        return False
 
     def isIdentical(self, other):
         """

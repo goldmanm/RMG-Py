@@ -223,6 +223,8 @@ cdef class Molecule(Graph):
 
     cpdef kekulize(self)
 
-    cpdef assignAtomIDs(self)
+    cpdef assignAtomIDs(self, int start=?)
+
+    cpdef bint atomIDValid(self)
 
     cpdef bint isIdentical(self, Molecule other) except -2
