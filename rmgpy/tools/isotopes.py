@@ -264,6 +264,7 @@ def removeIsotope(labeledObj, inplace = False):
 
     If successful, the non-inplace parts should be removed
     """
+
     if isinstance(labeledObj,Species):
         if inplace:
             modifiedAtoms = []
@@ -315,8 +316,24 @@ def removeIsotope(labeledObj, inplace = False):
             strippedRxn.products = strippedProducts
 
             return strippedRxn
+    elif isinstance(labeledObj,Molecule):
+        if inplace:
+            modifiedAtoms = []
+            for atom in labeledObj.atoms:
+                if atom.element.isotope != -1:
+                    modifiedAtoms.append((atom,atom.element))
+                    atom.element = getElement(atom.element.symbol)
+            return modifiedAtoms
+        else:
+            stripped = labeledObj.copy(deep=True)
+    
+            for atom in stripped.atoms:
+                if atom.element.isotope != -1:
+                    atom.element = getElement(atom.element.symbol)
+
+            return stripped
     else:
-        raise TypeError('Only Reaction and Species objects are supported')
+        raise TypeError('Only Reaction, Species, and Molecule objects are supported')
 
 def ensureReactionDirection(isotopomerRxns):
     """
