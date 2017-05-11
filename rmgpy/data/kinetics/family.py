@@ -1010,7 +1010,15 @@ class KineticsFamily(Database):
                 shortDesc="Rate rule generated from training reaction {0}. ".format(entry.index) + entry.shortDesc,
                 longDesc="Rate rule generated from training reaction {0}. ".format(entry.index) + entry.longDesc,
             )
-            new_entry.data.A.value_si /= entry.item.degeneracy
+            
+            # scale by degeneracy and modify rate by 2 if identical reactants
+            # since the interchangablility is accounted by the concentration 
+            updated_degeneracy = entry.item.degeneracy
+            if len(entry.item.reactants) > 1 and \
+                    entry.item.reactants[0].isIsomorphic(entry.item.reactants[1]):
+                updated_degeneracy *= 0.5
+            new_entry.data.A.value_si /= updated_degeneracy
+            
             try:
                 self.rules.entries[new_entry.label].append(new_entry)
             except KeyError:
@@ -1799,6 +1807,13 @@ class KineticsFamily(Database):
 
         template = self.retrieveTemplate(templateLabels)
         
+        # reduce degeneracy if two reactants are identical (since their interchangability)
+        # is already taken into account in the concentration terms
+        same_reactants = False
+        if len(reaction.reactants) > 1 and reaction.reactants[0].isIsomorphic(reaction.reactants[1]):
+            degeneracy *= 0.5
+            same_reactants = True
+        
         # Check the various depositories for kinetics
         for depository in depositories:
             kineticsList0 = self.getKineticsFromDepository(depository, reaction, template, degeneracy)
@@ -1818,6 +1833,8 @@ class KineticsFamily(Database):
                 raise
 
             if kinetics:
+                if same_reactants:
+                    kinetics.comment += "Rate halved since reactants are isomorphic"
                 if not returnAllKinetics:
                     return kinetics, estimator, entry, True
                 kineticsList.append([kinetics, estimator, entry, True])
@@ -1826,6 +1843,8 @@ class KineticsFamily(Database):
         else:
             try:
                 kinetics, entry = self.getKineticsForTemplate(template, degeneracy, method='rate rules')
+                if same_reactants:
+                    kinetics.comment += "Rate halved since reactants are isomorphic"
                 if not returnAllKinetics:
                     return kinetics, 'rate rules', entry, True
                 kineticsList.append([kinetics, 'rate rules', entry, True])
@@ -1835,6 +1854,8 @@ class KineticsFamily(Database):
             
             try:
                 kinetics2, entry2 = self.getKineticsForTemplate(template, degeneracy, method='group additivity')
+                if same_reactants:
+                    kinetics2.comment += "Rate halved since reactants are isomorphic"
                 if not returnAllKinetics:
                     return kinetics, 'group additivity', entry2, True
                 kineticsList.append([kinetics2, 'group additivity', entry2, True])
