@@ -79,7 +79,6 @@ def reactSpecies(speciesTuple):
     reactions = map(reactMolecules,combos)
     reactions = list(itertools.chain.from_iterable(reactions))
     reactions = findDegeneracies(reactions)
-    reduceSameReactantDegeneracy(reactions)
 
     # get a molecule list with species indexes
     zippedList = []
@@ -265,21 +264,6 @@ def convertToSpeciesObjects(reaction):
         convertToSpeciesObjects(reaction.reverse)
     except AttributeError:
         pass
-
-def reduceSameReactantDegeneracy(rxnList):
-    """
-    This method reduces the degeneracy of reactions with identical reactants,
-    since translational component of the transition states are already taken
-    into account (so swapping the same reactant is not valid)
-    
-    This comes from work by Bishop and Laidler in 1965
-    """
-    for reaction in rxnList:
-        if len(reaction.reactants) == 2 and reaction.reactants[0].isIsomorphic(reaction.reactants[1]):
-            assert reaction.degeneracy % 2 == 0, 'Reaction with isomorphic reactants had an odd degeneracy of {0}. The reaction is {1}'.format(reaction.degeneracy, str(reaction))
-            reaction.degeneracy /= 2
-
-    
 
 def deflate(rxns, species, reactantIndices):
     """

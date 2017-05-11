@@ -1425,7 +1425,7 @@ class KineticsFamily(Database):
             
         return reactionList
     
-    def calculateDegeneracy(self, reaction, ignoreSameReactants=False):
+    def calculateDegeneracy(self, reaction):
         """
         For a `reaction`  with `Molecule` objects given in the direction in which
         the kinetics are defined, compute the reaction-path degeneracy.
@@ -1436,7 +1436,7 @@ class KineticsFamily(Database):
         `ignoreSameReactants= True` to this method.
         """
         reaction.degeneracy = 1
-        from rmgpy.rmg.react import findDegeneracies, reduceSameReactantDegeneracy, getMoleculeTuples
+        from rmgpy.rmg.react import findDegeneracies, getMoleculeTuples
 
         # find combinations of resonance isomers
         specReactants = []
@@ -1453,8 +1453,6 @@ class KineticsFamily(Database):
 
         # remove degenerate reactions
         reactions = findDegeneracies(reactions)
-        if not ignoreSameReactants:
-            reduceSameReactantDegeneracy(reactions)
 
         # remove reactions with different templates (only for TemplateReaction)
         if isinstance(reaction, TemplateReaction):
