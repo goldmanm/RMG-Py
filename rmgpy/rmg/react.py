@@ -69,13 +69,9 @@ def reactSpecies(speciesTuple):
     given one species tuple, will find the reactions and remove degeneracy
     from them.
     """
-    if len(speciesTuple) == 2 and speciesTuple[0] == speciesTuple[1]:
-        # replace one with a new reference so independent labeling can occur
-        speciesTuple = (speciesTuple[0], speciesTuple[1].copy(deep=True))
+    speciesTuple = tuple([spc.copy(deep=True) for spc in speciesTuple])
 
     _labelListOfSpecies(speciesTuple)
-
-    speciesTuple = tuple([spc.copy(deep=True) for spc in speciesTuple])
 
     combos = getMoleculeTuples(speciesTuple)
 
