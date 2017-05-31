@@ -37,4 +37,4 @@ full, official license is reproduced below
 
 
 
-.. literalinclude:: ../../../../COPYING.txt
+.. literalinclude:: ../../../../LICENSE.txt
