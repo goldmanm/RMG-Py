@@ -52,7 +52,6 @@ from rmgpy.rmg.main import RMG, initializeLog
 from rmgpy.species import Species
 from rmgpy.reaction import Reaction
 from rmgpy.data.kinetics.family import TemplateReaction
-from rmgpy.rmg.listener import SimulationProfileWriter
 from rmgpy.thermo.thermoengine import processThermoData
 from rmgpy.data.thermo import findCp0andCpInf
 from rmgpy.data.rmg import getDB
@@ -181,45 +180,6 @@ def addIsotope(i, N, mol, mols, element):
                 isotopomer.atoms[mol.atoms.index(at)].element = element
                 mols.append(isotopomer)
                 addIsotope(i+1, N, isotopomer, mols, element)
-
-
-def solve(rmg):
-    """
-    Solve the reaction system, read the simulation 
-    profiles, and return them into a pandas dataframe.
-    """
-
-    solverDir = os.path.join(rmg.outputDirectory, 'solver')
-    try:
-        shutil.rmtree(solverDir)
-    except OSError, e:
-        pass
-    
-    os.mkdir(solverDir)
-
-    reactionSysIndex = 0
-    listener = SimulationProfileWriter(rmg.outputDirectory, reactionSysIndex, rmg.reactionModel.core.species)
-    
-    reactionSystem = rmg.reactionSystems[0]
-    reactionSystem.attach(listener)
-
-    reactionModel = rmg.reactionModel
-
-    # run simulation:
-    terminated, obj = reactionSystem.simulate(
-        coreSpecies = reactionModel.core.species,
-        coreReactions = reactionModel.core.reactions,
-        edgeSpecies = reactionModel.edge.species,
-        edgeReactions = reactionModel.edge.reactions,
-        toleranceKeepInEdge = 0,
-        toleranceMoveToCore = 1,
-        toleranceInterruptSimulation = 1,
-    ) 
-
-    simCSV = os.path.join(rmg.outputDirectory, 'solver/simulation_{}_{}.csv'.format(reactionSysIndex + 1, len(reactionModel.core.species)))
-    spcdata = pd.read_csv(simCSV)
-    
-    return spcdata
 
 def cluster(objList):
     """
