@@ -101,7 +101,7 @@ def generateIsotopeModel(outputDirectory, rmg0, isotopes):
 
     Returns created RMG object.
     """
-    logging.info("isotope: creating the RMG model")
+    logging.debug("isotope: called generateIsotopeModel")
     rmg = RMG(inputFile=rmg0.inputFile, outputDirectory=outputDirectory)
     rmg.attach(ChemkinWriter(outputDirectory))
 
@@ -601,26 +601,20 @@ def __compareReactionSymmetry(labeled_rxn, unlabeld_rxn):
                     if product_symmetry_ratio != reactant_symmetry_ratio:
                         A_factor_modification *= reactant_symmetry_ratio
                     
-def run(inputFile, isotopeInputFile, outputDir, original=None, isotopeLoc=None):
+def run(inputFile, outputDir, original=None):
     """
-    Accepts two input files, one input file with the RMG-Py model to generate, NOT
-    containing any non-normal isotopomers, and one input file for the model to be 
-    generated starting from the isotopomers generated from the core species of the first model.
+    Accepts one input file with the RMG-Py model to generate. This file can contain 
+    the optional parameter 'maximumIsotopicAtoms' to reduce isotope labeling.
 
     Firstly, generates the RMG model for the first input file. Takes the core species of that mechanism
     and generates all isotopomers of those core species. Next, generates all reactions between the
-    generated pool of isotopomers, and writes it to file. Next, reads in that newly generated mechanism
-    and runs a simulation with the given conditions of the second input file, writes species mole fractions
-    to file. Next, clusters the isotopomers together again, so that isotopomer probabilities can be computed.
-
-    Returns:
-    - a pandas data frame with isotopomer probabilities as a function of reaction time 
-    - a list of species objects corresponding to the isotopomers of the generated model
-    - a pandas data frame with isotopomer speciation data as a function of reaction time
+    generated pool of isotopomers, and writes it to file. 
     """
     logging.info("isotope: Starting the RMG isotope generation method 'run'")
     if not original:
         logging.info("isotope: original model not found, generating new one in directory `rmg`")
+        logging.info("isotope: check `rmg/RMG.log` for the rest of the logging info.")
+
         outputdirRMG = os.path.join(outputDir, 'rmg')
         os.mkdir(outputdirRMG)
 
@@ -632,69 +626,33 @@ def run(inputFile, isotopeInputFile, outputDir, original=None, isotopeLoc=None):
         dictFile = os.path.join(outputdirRMG, 'chemkin', 'species_dictionary.txt')
         rmg = loadRMGJob(inputFile, chemkinFile, dictFile, generateImages=False, useChemkinNames=True)
 
-    isotopeInputFile = os.path.abspath(isotopeInputFile)
-    
-    logging.info("isotope: creating RMG isotope input file")
-    rmgIso = RMG(inputFile = isotopeInputFile)
-    logging.info("isotope: loading isotope input file")
-    rmgIso.loadInput(rmgIso.inputFile)
+    logging.info("isotope: generating isotope model")
+    logging.info('Generating isotopomers for the core species in {}'.format(outputdirRMG))
+    isotopes = []
 
-    if not isotopeLoc:
-        logging.info("isotope: isotope model not found, generating new model")
-        print('Generating isotopomers for the core species in {}'.format(outputdirRMG))
-        isotopes = []
+    try:
+        speciesConstraints = getInput('speciesConstraints')
+    except Exception, e:
+        logging.debug('Species constraints could not be found.')
+        raise e
 
-        try:
-            speciesConstraints = getInput('speciesConstraints')
-        except Exception, e:
-            logging.debug('Species constraints could not be found.')
-            raise e
+    try:
+        maxIsotopes = speciesConstraints['maximumIsotopicAtoms']
+    except KeyError, e:
+        print ('Could not find the maxIsotopicAtoms constraint in the input file. Exiting...')
+        raise e
+    logging.info("isotope: adding all the new isotopomers")
+    for spc in rmg.reactionModel.core.species:
+        findCp0andCpInf(spc, spc.thermo)
+        isotopes.extend(generateIsotopomers(spc, maxIsotopes))
 
-        try:
-            maxIsotopes = speciesConstraints['maximumIsotopicAtoms']
-        except KeyError, e:
-            print ('Could not find the maxIsotopicAtoms constraint in the input file. Exiting...')
-            raise e
-        logging.info("isotope: adding all the new isotopomers")
-        for spc in rmg.reactionModel.core.species:
-            findCp0andCpInf(spc, spc.thermo)
-            isotopes.extend(generateIsotopomers(spc, maxIsotopes))
+    logging.info("isotope: adding original species to the model")
+    # add the original unlabeled species:
+    isotopes.extend(rmg.reactionModel.core.species)
+    logging.info('Number of isotopomers: {}'.format(len(isotopes)))
 
-        logging.info("isotope: adding original species to the model")
-        # add the original unlabeled species:
-        isotopes.extend(rmg.reactionModel.core.species)
-        logging.info('Number of isotopomers: {}'.format(len(isotopes)))
+    outputdirIso = os.path.join(outputDir, 'iso')
+    os.mkdir(outputdirIso)
 
-        outputdirIso = os.path.join(outputDir, 'iso')
-        os.mkdir(outputdirIso)
-
-        logging.info('isotope: Generating RMG isotope model in {}'.format(outputdirIso))
-        rmgIso = generateIsotopeModel(outputdirIso, rmg, isotopes)
-    else:
-        outputdirIso= isotopeLoc
-
-    chemkinFileIso = os.path.join(outputdirIso, 'chemkin', 'chem_annotated.inp')
-    dictFileIso = os.path.join(outputdirIso, 'chemkin', 'species_dictionary.txt')
-
-    logging.info('isotope: Loading isotope chemkin model.\nInput file: {}\nChemkin file: {}\nDict file: {}'\
-        .format(isotopeInputFile, chemkinFileIso, dictFileIso))
-
-    rmgIso = loadRMGJob(isotopeInputFile, chemkinFileIso, dictFileIso, generateImages=True, useChemkinNames=True)
-    rmgIso.outputDirectory = outputdirIso
-
-    logging.info('isotope: Clustering isotopomers...')
-    clusters = cluster(rmgIso.reactionModel.core.species)
-
-    logging.info('isotope: Solving the Isotope model with the isotope input file...')
-    spcData = solve(rmgIso)    
-    
-    logging.info('isotope: Generating concentrations for lumped species...')
-    concs = retrieveConcentrations(spcData, clusters)
-
-    logging.info('isotope: Computing isotopomer probabilities...')
-    probs = []
-    for df in concs:
-        df = computeProbabilities(df.copy())
-        probs.append(df)
-
-    return probs, rmgIso.reactionModel.core.species, spcData
+    logging.info('isotope: Generating RMG isotope model in {}'.format(outputdirIso))
+    generateIsotopeModel(outputdirIso, rmg, isotopes)
