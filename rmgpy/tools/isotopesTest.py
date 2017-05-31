@@ -681,49 +681,6 @@ multiplicity 2
         self.assertAlmostEqual(propane.getEnthalpy(298),propanei.getEnthalpy(298))
         self.assertAlmostEqual(propanei.getEntropy(298)-propane.getEntropy(298),constants.R * np.log(2))
 
-    def testComputeProbabilities(self):
-        """
-        Test that the retrieval of isotopomer concentrations works.
-        """
-        folder = os.path.join(os.path.dirname(rmgpy.__file__),'tools/data/isotopes')
-        try:
-            shutil.rmtree(os.path.join(folder,'solver'))
-        except OSError, e:
-            pass
-        
-
-        inputFile = os.path.join(folder, 'input_isotope.py')
-        chemkinFile = os.path.join(folder, 'chemkin', 'chem_annotated.inp')
-        dictFile = os.path.join(folder, 'chemkin', 'species_dictionary.txt')
-
-        os.mkdir(os.path.join(folder, 'solver'))
-
-        rmg = loadRMGJob(inputFile, chemkinFile, dictFile, generateImages=False, useChemkinNames=True)
-
-        spcdata = solve(rmg)
-
-        clusters = cluster(rmg.reactionModel.core.species)
-        concs = retrieveConcentrations(spcdata, clusters)
-
-        self.assertEquals(len(clusters), len(concs))
-        for clust, df in zip(clusters, concs):
-            self.assertEquals(len(clust), len(df.columns))
-
-        # compute species probabilities
-        probs = []
-        for df in concs:
-            df = computeProbabilities(df.copy())
-            probs.append(df)
-
-        for df in probs:
-            sumConcs = df.sum(axis=1)
-            sampleSize = 2
-            for sample in sumConcs.sample(sampleSize):
-                if not np.isnan(sample):
-                    self.assertAlmostEqual(sample, 1.)            
-
-        shutil.rmtree(os.path.join(folder,'solver'))
-
     def testGenerateIsotopomers(self):
         """
         Test that the generation of isotopomers with N isotopes works.

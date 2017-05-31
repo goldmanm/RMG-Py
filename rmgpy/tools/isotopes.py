@@ -423,18 +423,6 @@ def retrieveConcentrations(spcdata, clusters):
 
     return concs
 
-def computeProbabilities(df):
-    """
-    Compute the isotope probabilities by dividing the 
-    species concentration by the sum of the clustered species concentrations.
-    """
-    probs = []
-    sumConcs = df.sum(axis=1)
-    for column in df:
-        df[column] = df[column] / sumConcs
-
-    return df
-
 def generateRMGModel(inputFile, outputDirectory):
     """
     Generate the RMG-Py model NOT containing any non-normal isotopomers.
