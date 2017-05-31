@@ -113,10 +113,6 @@ def generateIsotopeModel(outputDirectory, rmg0, isotopes):
         unimolecularReact=rmg.unimolecularReact,
         bimolecularReact=rmg.bimolecularReact)
 
-    # alter forward reaction rates to be thermodynamically consistant
-    # across isotopomers
-    #correctAFactors(rmg.reactionModel.core.reactions)
-
     logging.info("isotope: clustering reactions")
     clusters = cluster(rmg.reactionModel.core.reactions)
     logging.info('isotope: fixing the directions of every reaction to a standard')
@@ -477,66 +473,6 @@ def correctEntropy(isotopomer, isotopeless):
     # put the corrected thermo back as a species attribute:
     isotopomer.thermo = nasa
 
-def correctAFactors(reactions):
-    """
-    This method corrects the A factors of reactions
-    to be consistant with the thermodynamics of reactants
-    which leads to a more stable isotopomer ratio.It takes
-    in a list of all core reactions (after model generation)
-    and modifies the A factors of the reactions. The reactions
-    are modified in place (no returning various isotopomers)
-    """
-    reactionClusters = cluster(reactions)
-    for rxnList in reactionClusters:
-        correctAFactorsOfIsotopomers(rxnList)
-
-    # halfing Afactors when reactants are identical 
-    from rmgpy.kinetics.arrhenius import Arrhenius, ArrheniusEP
-    for rxn in rxnList:
-        if len(rxn.reactants) == 2:
-            if rxn.reactants[0].isIsomorphic(rxn.reactants[1]):
-                if isinstance(rxn.kinetics,Arrhenius) or isinstance(rxn.kinetics,ArrheniusEP):
-                    rxn.kinetics.A.value = rxn.kinetics.A.value / 2
-
-def correctAFactorsOfIsotopomers(rxnList):
-    """
-    Since different isotopomers sometimes have different symmetry
-    numbers (and the TS of both often don't), the rates of the isotopomer
-    reactions may not be correct. This method seeks to correct for this
-    discrpency by taking in a list of identical reactions varying in labeling 
-    (which can be obtained from `cluster`), and modifying the A-factors 
-    to be thermodynamically equivalent.
-    
-    `rxnList` - a list of identical reactions varying in labeling
-    
-    Symmetry difference = symmetry labeled rxn / symmetry unlabeled rxn
-    A(labeled) = A(non-labeled) * symmetry difference
-    """
-    unlabeledRxn = None
-    for rxn in rxnList:
-        if not isEnriched(rxn):
-            unlabeledRxn = rxn
-            break
-    if unlabeledRxn is None:
-        logging.info('No unlabeled reaction sent to correctAFactorsForIsotopomers. The reactions are of type {}'.format(str(rxnList[0])))
-        unlabeledRxn = removeIsotope(rxnList[0])
-        # note the kinetics will be off when comparing these, but it will
-        # be thermodynamically consistant
-    
-    unlabeledSymmetry = __getReactionSymmetryNumber(unlabeledRxn)
-    unlabeledA = unlabeledRxn.kinetics.A.value_si
-    for rxn in rxnList:
-        symmetry = __getReactionSymmetryNumber(rxn)
-        AFactor = unlabeledRxn.kinetics.A.value_si
-        
-        symmetryRatio = symmetry / unlabeledSymmetry
-        AFactorRatio = AFactor / unlabeledA
-        
-        if not np.isclose(symmetryRatio,AFactorRatio):
-            logging.info("reaction {} initially had incorrect AFactor. Making it match unlabeled reaction {}".format(str(rxn.index),str(unlabeledRxn.index)))
-            AFactorMultiplier = symmetry / unlabeledSymmetry
-            rxn.kinetics.A.value = unlabeledRxn.kinetics.A.value * AFactorMultiplier
-    
 def isEnriched(obj):
     """
     Returns True if the species or reaction object has any enriched isotopes.
