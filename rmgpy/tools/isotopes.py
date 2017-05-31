@@ -397,32 +397,6 @@ def compareIsotopomers(obj1, obj2, eitherDirection = True):
     redoIsotope(atomlist)
     return comparisonBool
 
-def retrieveConcentrations(spcdata, clusters):
-    """
-    Iterate over the species in the list of clustered species
-    and return a dataframe, but filled with 
-    concentration columns of the corresponding species.
-    """
-
-    concs = []
-
-    for cluster in clusters:
-        df = pd.DataFrame()
-        for spc in cluster:
-            try:
-                header = '{}({})'.format(spc.label, spc.index)
-                df[header] = spcdata[header]
-            except KeyError, e:
-                header = '{}'.format(spc.label)
-                try:
-                    df[header] = spcdata[header]
-                except KeyError, e:
-                    raise e
-            
-        concs.append(df)
-
-    return concs
-
 def generateRMGModel(inputFile, outputDirectory):
     """
     Generate the RMG-Py model NOT containing any non-normal isotopomers.
