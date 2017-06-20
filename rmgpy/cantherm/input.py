@@ -131,6 +131,17 @@ def species(label, *args, **kwargs):
         spec.energyTransferModel = energyTransferModel
         spec.thermo = thermo
         
+        if not spec.hasStatMech() and structure is not None: 
+            # generate stat mech info if it wasn't provided before
+            spec.generateStatMech()
+
+        if structure and not molecularWeight:
+            spec.molecularWeight = (spec.molecule[0].getMolecularWeight(), "g/mol")
+
+        if not energyTransferModel:
+            # default to RMG's default pdep value
+            spec.energyTransferModel = SingleExponentialDown(alpha0=(4.86,'kcal/mol'))
+
     return spec
 
 def transitionState(label, *args, **kwargs):
@@ -195,6 +206,9 @@ def reaction(label, reactants, products, transitionState, kinetics=None, tunneli
     rxn = Reaction(label=label, reactants=reactants, products=products, transitionState=transitionState, kinetics=kinetics)
     reactionDict[label] = rxn
     
+    # set transition state Energy if not set previously using same method as RMG pdep
+    if transitionState.conformer.E0 is None:
+        transitionState.conformer.E0 = (sum([spec.conformer.E0.value_si for spec in rxn.reactants]) + rxn.kinetics.Ea.value_si,"J/mol")
     return rxn
 
 def network(label, isomers=None, reactants=None, products=None, pathReactions=None, bathGas=None):
@@ -320,6 +334,29 @@ def SMILES(smiles):
 def InChI(inchi):
     return Molecule().fromInChI(inchi)
 
+def loadNecessaryDatabases():
+    """
+    loads transport and statmech databases 
+    """
+    from rmgpy.data.statmech import StatmechDatabase
+    from rmgpy.data.rmg import getDB
+    from rmgpy import settings
+    from rmgpy.data.rmg import RMGDatabase
+    from rmgpy.data.transport import TransportDatabase
+
+    #only load if they are not there already.
+    try:
+        getDB('transport')
+        getDB('statmech')
+    except:
+        logging.info("Databases not found. Making databases")
+        db = RMGDatabase()
+        db.statmech = StatmechDatabase()
+        db.statmech.load(os.path.join(settings['database.directory'],'statmech'))
+
+        db.transport = TransportDatabase()
+        db.transport.load(os.path.join(settings['database.directory'],'transport'))
+
 ################################################################################
 
 def loadInputFile(path):
@@ -375,6 +412,8 @@ def loadInputFile(path):
         'SMILES': SMILES,
         'InChI': InChI,
     }
+
+    loadNecessaryDatabases()
 
     with open(path, 'r') as f:
         try:
