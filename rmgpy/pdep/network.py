@@ -574,7 +574,7 @@ class Network:
             reacDensStates = densStates[reac,:,:]
             prodDensStates = densStates[prod,:,:]
             kf, kr = rxn.calculateMicrocanonicalRateCoefficient(self.Elist, self.Jlist, reacDensStates, prodDensStates, T)
-                        
+
             # Check for NaN (just to be safe)
             if numpy.isnan(kf).any() or numpy.isnan(kr).any():
                 raise NetworkError('One or more k(E) values is NaN for path reaction "{0}".'.format(rxn))
@@ -582,9 +582,11 @@ class Network:
             # Determine the expected value of the rate coefficient k(T)
             if rxn.canTST():
                 # RRKM theory was used to compute k(E), so use TST to compute k(T)
+                logging.debug('Using RRKM rate for Expected kf')
                 kf_expected = rxn.calculateTSTRateCoefficient(T)
             else:
                 # ILT was used to compute k(E), so use high-P kinetics to compute k(T)
+                logging.debug('Using high pressure rate coefficient rate for Expected kf')
                 kf_expected = rxn.kinetics.getRateCoefficient(T)
             
             # Determine the expected value of the equilibrium constant (Kc)
@@ -706,6 +708,7 @@ class Network:
         conc = (1e5 / constants.R / T)          # [=] mol/m^3
         for i in range(Nisom):
             G = self.isomers[i].getFreeEnergy(T)
+            logging.debug("Free energy for isomer {} is {}.".format(i,G))
             eqRatios[i] = math.exp(-G / constants.R / T)
         for i in range(Nreac):
             G = self.reactants[i].getFreeEnergy(T)
