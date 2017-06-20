@@ -157,6 +157,8 @@ class Network:
         maximum energy grain size `grainSize` in J/mol and/or the minimum
         number of grains `grainCount`.
         """
+
+        logging.debug("initializing network")
         if maximumGrainSize == 0.0 and minimumGrainCount == 0:
             raise NetworkError('Must provide either grainSize or Ngrains parameter to Network.determineEnergyGrains().')
 
