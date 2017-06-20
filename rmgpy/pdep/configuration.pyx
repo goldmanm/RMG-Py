@@ -309,7 +309,6 @@ cdef class Configuration:
                 for spec in self.species:
                     self.densStates *= spec.conformer.spinMultiplicity * spec.conformer.opticalIsomers
                     self.sumStates *= spec.conformer.spinMultiplicity * spec.conformer.opticalIsomers
-        logging.debug("the saved density of states is {}".format(self.densStates))
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def mapDensityOfStates(self, numpy.ndarray[numpy.float64_t,ndim=1] Elist, numpy.ndarray[numpy.int_t,ndim=1] Jlist=None):
@@ -325,7 +324,6 @@ cdef class Configuration:
         
         import scipy.interpolate
 
-        logging.debug("the saved density of states is {}".format(self.densStates))
         for r in range(self.Elist.shape[0]):
             if self.densStates[r] > 0:
                 break
