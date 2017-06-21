@@ -45,6 +45,8 @@ try:
 except ImportError:
     pass
 
+from rmgpy.chemkin import writeElementsSection, writeThermoEntry, writeKineticsEntry
+
 from rmgpy.cantherm.input import loadInputFile
 
 ################################################################################
@@ -230,6 +232,21 @@ class CanTherm:
             pass
         chemkinFile = os.path.join(self.outputDirectory, 'chem.inp')
         with open(chemkinFile, 'w') as f:
+            writeElementsSection(f)
+            
+            f.write('SPECIES\n')
+            
+            f.write('END\n\n\n\n')
+            
+            f.write('THERM ALL\n')
+            f.write('    300.000  1000.000  5000.000\n\n')
+            
+            f.write('\n')
+            f.write('END\n\n\n\n')
+            
+            f.write('REACTIONS    KCAL/MOLE   MOLES\n\n')
+            
+            f.write('END\n\n')
             pass
         
         # Run the jobs
