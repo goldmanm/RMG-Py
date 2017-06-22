@@ -592,7 +592,7 @@ class TransitionState():
         if self.conformer is not None and len(self.conformer.modes) > 0:
             Q = self.conformer.getPartitionFunction(T)
         else:
-            raise Exception('Unable to calculate partition function for transition state {0!r}: no statmech data available.'.format(self.label))
+            raise SpeciesError('Unable to calculate partition function for transition state {0!r}: no statmech data available.'.format(self.label))
         return Q
         
     def getHeatCapacity(self, T):
