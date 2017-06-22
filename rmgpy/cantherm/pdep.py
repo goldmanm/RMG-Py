@@ -447,6 +447,7 @@ class PressureDependenceJob(object):
                 if reac == prod: continue
                 reaction = self.network.netReactions[count]
                 count += 1
+                reaction.reversible = False
                 string = writeKineticsEntry(reaction, speciesList=None, verbose=False)
                 f.write('{0}\n'.format(string))
             
