@@ -215,13 +215,18 @@ class RMGDatabase:
         Save the RMG database to the given `path` on disk.
         """
         if not os.path.exists(path): os.makedirs(path)
-        self.forbiddenStructures.save(os.path.join(path, 'forbiddenStructures.py'))
-        self.thermo.save(os.path.join(path, 'thermo'))
-#         self.transport.save(os.path.join(path, 'transport')) #Currently no function for saving transport groups
-        self.kinetics.save(os.path.join(path, 'kinetics'))
-        self.statmech.save(os.path.join(path, 'statmech'))
-        self.solvation.save(os.path.join(path, 'solvation'))
-        self.transport.save(os.path.join(path, 'transport'))
+        if self.forbiddenStructures:
+            self.forbiddenStructures.save(os.path.join(path, 'forbiddenStructures.py'))
+        if self.thermo:
+            self.thermo.save(os.path.join(path, 'thermo'))
+        if self.kinetics:
+            self.kinetics.save(os.path.join(path, 'kinetics'))
+        if self.statmech:
+            self.statmech.save(os.path.join(path, 'statmech'))
+        if self.solvation:
+            self.solvation.save(os.path.join(path, 'solvation'))
+        if self.transport:
+            self.transport.save(os.path.join(path, 'transport'))
 
     def saveOld(self, path):
         """
