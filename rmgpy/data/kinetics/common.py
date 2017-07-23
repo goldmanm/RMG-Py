@@ -78,10 +78,10 @@ def saveEntry(f, entry):
         keys.sort()
         return [(key, efficiencies[key]) for key in keys]
 
-    f.write('entry(\n')
-    f.write('    index = {0:d},\n'.format(entry.index))
+    f.write(u'entry(\n')
+    f.write(u'    index = {0:d},\n'.format(entry.index))
     if entry.label != '':
-        f.write('    label = "{0}",\n'.format(entry.label))
+        f.write(u'    label = "{0}",\n'.format(entry.label))
 
 
     #Entries for kinetic rules, libraries, training reactions
@@ -95,32 +95,32 @@ def saveEntry(f, entry):
                                                     "but reaction {0!s} has label {1!r}".format(
                                                      entry.item, entry.label))
             # Add degeneracy if the reaction is coming from a depository or kinetics library
-            f.write('    degeneracy = {0:.1f},\n'.format(entry.item.degeneracy))
+            f.write(u'    degeneracy = {0:.1f},\n'.format(entry.item.degeneracy))
             if entry.item.duplicate:
-                f.write('    duplicate = {0!r},\n'.format(entry.item.duplicate))
+                f.write(u'    duplicate = {0!r},\n'.format(entry.item.duplicate))
             if not entry.item.reversible:
-                f.write('    reversible = {0!r},\n'.format(entry.item.reversible))
+                f.write(u'    reversible = {0!r},\n'.format(entry.item.reversible))
     #Entries for groups with have a group or logicNode for its item
     elif isinstance(entry.item, Group):
-        f.write('    group = \n')
-        f.write('"""\n')
+        f.write(u'    group = \n')
+        f.write(u'"""\n')
         f.write(entry.item.toAdjacencyList())
-        f.write('""",\n')
+        f.write(u'""",\n')
     elif isinstance(entry.item, LogicNode):
-        f.write('    group = "{0}",\n'.format(entry.item))
+        f.write(u'    group = "{0}",\n'.format(entry.item))
     else:
         raise DatabaseError("Encountered unexpected item of type {0} while saving database.".format(entry.item.__class__))
 
     # Write kinetics
     if isinstance(entry.data, str):
-        f.write('    kinetics = "{0}",\n'.format(entry.data))
+        f.write(u'    kinetics = "{0}",\n'.format(entry.data))
     elif entry.data is not None:
         efficiencies = None
         if hasattr(entry.data, 'efficiencies'):
             efficiencies = entry.data.efficiencies
             entry.data.efficiencies = dict(sortEfficiencies(entry.data.efficiencies))
         kinetics = prettify(repr(entry.data))
-        kinetics = '    kinetics = {0},\n'.format(kinetics.replace('\n', '\n    '))
+        kinetics = u'    kinetics = {0},\n'.format(kinetics.replace('\n', '\n    '))
         f.write(kinetics)
         if hasattr(entry.data, 'efficiencies'):
             entry.data.efficiencies = efficiencies
