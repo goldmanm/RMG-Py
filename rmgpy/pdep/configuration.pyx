@@ -303,7 +303,7 @@ cdef class Configuration:
                 assert len(mass) == 3
                 mu = 1.0/(1.0/mass[0] + 1.0/mass[1])
                 modes.insert(0, IdealGasTranslation(mass=(mu/constants.amu,"amu")))
-                mu2 = 1.0/(1.0/mu + 1.0/mass[2])
+                mu2 = 1.0/(1.0/mass[0] + 1.0/mass[2])
                 modes.insert(0, IdealGasTranslation(mass=(mu2/constants.amu,"amu")))
             if rmgmode:
                 # Compute the density of states by direct count
