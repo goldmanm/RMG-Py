@@ -505,7 +505,8 @@ class PressureDependenceJob(object):
                     duplicate = True
 
                 # write chemkin output.
-                string = writeKineticsEntry(reaction, speciesList=None, verbose=False, commented=duplicate)
+                string = writeKineticsEntry(reaction, speciesList=None, verbose=False, commented = duplicate, use_label = True)
+
                 f_chemkin.write('{0}\n'.format(string))
 
                 # write to 'output.py'
