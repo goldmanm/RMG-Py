@@ -70,23 +70,36 @@ class ThermoJob(object):
         self.thermoClass = thermoClass
         self.arkane_species = ArkaneSpecies(species=species)
 
-    def execute(self, outputFile=None, plot=False):
+    def execute(self, output_directory=None, plot=False):
         """
         Execute the thermodynamics job, saving the results to the
         given `outputFile` on disk.
         """
         self.generateThermo()
-        if outputFile is not None:
-            self.arkane_species.chemkin_thermo_string = self.save(outputFile)
+        if output_directory is not None:
+            try:
+                self.write_output(output_directory)
+            except Exception as e:
+                logging.warning("Could not write output file due to error: "
+                                "{0} for species {1}".format(e, self.species.label))
+            try:
+                self.arkane_species.chemkin_thermo_string = self.write_chemkin(output_directory)
+            except Exception as e:
+                logging.warning("Could not write chemkin output due to error: "
+                                "{0} for species {1}".format(e, self.species.label))
             if self.species.molecule is None or len(self.species.molecule) == 0:
                 logging.debug("Not generating a YAML file for species {0}, since its structure wasn't"
                               " specified".format(self.species.label))
             else:
                 # We're saving a YAML file for species iff Thermo is called and they're structure is known
                 self.arkane_species.update_species_attributes(self.species)
-                self.arkane_species.save_yaml(path=os.path.dirname(outputFile))
+                self.arkane_species.save_yaml(path=output_directory)
             if plot:
-                self.plot(os.path.dirname(outputFile))
+                try:
+                    self.plot(output_directory)
+                except Exception as e:
+                    logging.warning("Could not create plots due to error: "
+                                    "{0} for species {1}".format(e, self.species.label))
 
     def generateThermo(self):
         """
@@ -147,12 +160,13 @@ class ThermoJob(object):
         else:
             species.thermo = wilhoit
 
-    def save(self, outputFile):
+    def write_output(self, output_directory):
         """
         Save the results of the thermodynamics job to the file located
         at `path` on disk.
         """
         species = self.species
+        outputFile = os.path.join(output_directory, 'output.py')
         logging.info('Saving thermo for {0}...'.format(species.label))
 
         f = open(outputFile, 'a')
@@ -181,26 +195,31 @@ class ThermoJob(object):
         f.write('{0}\n\n'.format(prettify(thermo_string)))
 
         f.close()
-        # write chemkin file
-        f = open(os.path.join(os.path.dirname(outputFile), 'chem.inp'), 'a')
-        if isinstance(species, Species):
-            if species.molecule and isinstance(species.molecule[0], Molecule):
-                elementCounts = retrieveElementCount(species.molecule[0])
+
+    def write_chemkin(self, output_directory):
+        """
+        Appends the thermo block to `chem.inp` and species name to
+        `species_dictionary.txt` for the outut_directory specified
+        """
+        species = self.species
+        with open(os.path.join(output_directory, 'chem.inp'), 'a') as f:
+            if isinstance(species, Species):
+                if species.molecule and isinstance(species.molecule[0], Molecule):
+                    elementCounts = retrieveElementCount(species.molecule[0])
+                else:
+                    try:
+                        elementCounts = species.props['elementCounts']
+                    except KeyError:
+                        elementCounts = {'C': 0, 'H': 0}
             else:
-                try:
-                    elementCounts = species.props['elementCounts']
-                except KeyError:
-                    elementCounts = {'C': 0, 'H': 0}
-        else:
-            elementCounts = {'C': 0, 'H': 0}
-        chemkin_thermo_string = writeThermoEntry(species, elementCounts=elementCounts, verbose=True, use_label=True)
-        f.write('{0}\n'.format(chemkin_thermo_string))
-        f.close()
+                elementCounts = {'C': 0, 'H': 0}
+            chemkin_thermo_string = writeThermoEntry(species, elementCounts=elementCounts, verbose=True, use_label=True)
+            f.write('{0}\n'.format(chemkin_thermo_string))
 
         # write species dictionary
         if isinstance(species, Species):
             if species.molecule and isinstance(species.molecule[0], Molecule):
-                with open(os.path.join(os.path.dirname(outputFile), 'species_dictionary.txt'), 'a') as f:
+                with open(os.path.join(output_directory, 'species_dictionary.txt'), 'a') as f:
                     f.write(species.molecule[0].toAdjacencyList(removeH=False, label=species.label))
                     f.write('\n')
         return chemkin_thermo_string
