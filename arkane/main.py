@@ -300,8 +300,8 @@ class Arkane:
 
         # run kinetics and pdep jobs (also writes reaction blocks to Chemkin file)
         for job in self.jobList:
-            if isinstance(job, KineticsJob):
-                job.execute(outputFile=outputFile, plot=self.plot)
+            if isinstance(job,KineticsJob):
+                job.execute(output_directory=self.outputDirectory, plot=self.plot)
             elif isinstance(job, PressureDependenceJob) and not any([isinstance(job, ExplorerJob) for job in
                                                                      self.jobList]):
                 # if there is an explorer job the pdep job will be run in the explorer job
@@ -311,9 +311,8 @@ class Arkane:
                         'to generate a network')
                 job.execute(outputFile=outputFile, plot=self.plot)
             elif isinstance(job, ExplorerJob):
-                thermoLibrary, kineticsLibrary, speciesList = self.getLibraries()
-                job.execute(outputFile=outputFile, plot=self.plot, speciesList=speciesList, thermoLibrary=thermoLibrary,
-                            kineticsLibrary=kineticsLibrary)
+                thermoLibrary,kineticsLibrary,speciesList = self.getLibraries()
+                job.execute(outputFile=outputFile, plot=self.plot, speciesList=speciesList, thermoLibrary=thermoLibrary, kineticsLibrary=kineticsLibrary)
 
         with open(chemkinFile, 'a') as f:
             f.write('END\n\n')
