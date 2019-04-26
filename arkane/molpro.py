@@ -408,3 +408,18 @@ class MolproLog(Log):
         Rotor scans are not implemented in Molpro
         """
         raise NotImplementedError('Rotor scans not implemented in Molpro')
+
+    def get_T1_diagnostic(self):
+        """
+        This method returns the T1 diagnostic for certain quantuum jobs
+        """
+        diagnostic_val = None
+        with open(self.path,'r') as f:
+            line = f.readline()
+            while line != '':
+                if "T1 diagnostic:" in line:
+                    diagnostic_val = float(line.split()[-1])
+                    break
+                line = f.readline()
+        return diagnostic_val
+
