@@ -189,7 +189,7 @@ class StatMechJob(object):
         Execute the statistical mechanics job, saving the results to the
         given `outputFile` on disk.
         """
-        self.load(pdep)
+        self.load(pdep,plot)
         if output_directory is not None:
             try:
                 self.write_output(output_directory)
@@ -198,7 +198,7 @@ class StatMechJob(object):
         logging.debug('Finished statmech job for species {0}.'.format(self.species))
         logging.debug(repr(self.species))
 
-    def load(self, pdep=False):
+    def load(self, pdep=False, plot=False):
         """
         Load the statistical mechanics parameters for each conformer from
         the associated files on disk. Creates :class:`Conformer` objects for
@@ -515,8 +515,11 @@ class StatMechJob(object):
                             rotor = cosineRotor
 
                         conformer.modes.append(rotor)
-
-                        self.plotHinderedRotor(angle, v_list, cosineRotor, fourierRotor, rotor, rotorCount, directory)
+                        if plot:
+                            try:
+                                self.plotHinderedRotor(angle, v_list, cosineRotor, fourierRotor, rotor, rotorCount, directory)
+                            except Exception as e:
+                                logging.warning("Could not plot hindered rotor graph due to error: {0}".format(e))
 
                         rotorCount += 1
 
@@ -619,11 +622,6 @@ class StatMechJob(object):
         series potential fits. The plot is saved to a set of files of the form
         ``hindered_rotor_1.pdf``.
         """
-        try:
-            import pylab
-        except ImportError:
-            return
-
         phi = numpy.arange(0, 6.3, 0.02, numpy.float64)
         Vlist_cosine = numpy.zeros_like(phi)
         Vlist_fourier = numpy.zeros_like(phi)
