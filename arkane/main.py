@@ -266,6 +266,7 @@ class Arkane:
 
         # run thermo and statmech jobs (also writes thermo blocks to Chemkin file)
         supporting_info = []
+        hindered_rotor_info = []
         for job in self.jobList:
             if isinstance(job, ThermoJob):
                 job.execute(output_directory=self.outputDirectory, plot=self.plot)
@@ -273,6 +274,8 @@ class Arkane:
                 job.execute(output_directory=self.outputDirectory, plot=self.plot, pdep=is_pdep(self.jobList))
                 try:
                     supporting_info.append(job.supporting_info)
+                    for hr_info in job.raw_hindered_rotor_data:
+                        hindered_rotor_info.append(hr_info)
                 except:
                     pass # statmechjob came from yaml
 
@@ -307,6 +310,13 @@ class Arkane:
                         freq += ', '.join(['{0:.1f}'.format(s) for s in row[5]])
                     atoms = ', '.join(["{0}    {1}".format(atom,"    ".join([str(c) for c in coords])) for atom, coords in zip(row[10], row[11])])
                     writer.writerow([label, row[1], row[2], row[3], rot, freq, row[7],row[8], row[9],atoms,row[12]])
+        if hindered_rotor_info:
+            hr_file = os.path.join(self.outputDirectory,'hindered_rotor_scan_data.csv')
+            with open(hr_file, 'wb') as csvfile:
+                 writer = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+                 writer.writerow(['species','rotor_number','symmetry', 'spacing (radians)', ] + ['energy (cal/mol) {}'.format(i) for i in range(72)])
+                 for row in hindered_rotor_info:
+                     writer.writerow([row[0], row[1], row[2], row[3][1]] + [a for a in row[4]])
         # run kinetics and pdep jobs (also writes reaction blocks to Chemkin file)
         for job in self.jobList:
             if isinstance(job,KineticsJob):
