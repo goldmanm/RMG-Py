@@ -38,6 +38,7 @@ import os.path
 import math
 import numpy as np
 import logging
+import warnings
 
 from rdkit.Chem import GetPeriodicTable
 
@@ -68,6 +69,9 @@ class ScanLog(object):
     """
     Represent a text file containing a table of angles and corresponding
     scan energies.
+
+    Deprecated since the original Gaussian and Qchem scan logs are readable
+    with Arkane. Will be removed on or after RMG version 2.5
     """
 
     angleFactors = {
@@ -87,6 +91,8 @@ class ScanLog(object):
 
     def __init__(self, path):
         self.path = path
+        warnings.warn("The option to read a scan log from a tabulated text file"
+                      "is no longer supported and may be removed after Version: 2.5 ", DeprecationWarning)
 
     def load(self):
         """
