@@ -138,9 +138,8 @@ class GaussianTest(unittest.TestCase):
         Uses a Gaussian03 log file for oxygen (O2) to test that its
         molecular degrees of freedom can be properly read.
         """
-
         log = GaussianLog(os.path.join(os.path.dirname(__file__), 'data', 'oxygen.log'))
-        optical, symmetry = log.get_optical_isomers_and_symmetry_number()
+        optical, symmetry, _ = log.get_symmetry_properties()
         self.assertEqual(optical, 1)
         self.assertEqual(symmetry, 2)
 
