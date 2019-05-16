@@ -1263,7 +1263,7 @@ class Reaction:
 
     def calculate_coll_limit(self, temp, reverse=False):
         """
-        Calculate the collision limit rate for the given temperature
+        Calculate the collision limit rate in m^3/(mol*s) for the given temperature
         implemented as recommended in Wang et al. doi 10.1016/j.combustflame.2017.08.005 (Eq. 1)
         """
         reduced_mass = self.get_reduced_mass(reverse)
@@ -1277,8 +1277,8 @@ class Reaction:
 
     def get_reduced_mass(self, reverse=False):
         """
-        Returns the reduced mass of the reactants if reverse is ``False``
-        Returns the reduced mass of the products if reverse is ``True``
+        Returns the reduced mass in kg/mol of the reactants if reverse is ``False``
+        and of the products if reverse is ``True``.
         """
         if reverse:
             mass_list = [spc.molecule[0].getMolecularWeight() for spc in self.products]
@@ -1289,8 +1289,8 @@ class Reaction:
 
     def get_mean_sigma_and_epsilon(self, reverse=False):
         """
-        Calculates the collision diameter (sigma) using an arithmetic mean
-        Calculates the well depth (epsilon) using a geometric mean
+        Calculates the collision diameter (sigma) in m using an arithmetic mean
+        Calculates the well depth (epsilon) in J/mol using a geometric mean
         If reverse is ``False`` the above is calculated for the reactants, otherwise for the products
         """
         sigmas = []
