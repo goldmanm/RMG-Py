@@ -181,3 +181,11 @@ class Log(object):
         This method returns the T1 diagnostic for certain quantum jobs
         """
         raise NotImplementedError("get_T1_diagnostic is not implemented for all Log subclasses.")
+
+    def get_quantum_method(self):
+        """
+        Returns a string describing the quantum method used in the
+        calculation.
+        """
+        raise NotImplementedError("get_quantum_method is not implemented for the Log class. "
+                                  "This method should be implemented by a subclass.")
