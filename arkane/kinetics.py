@@ -302,7 +302,7 @@ class KineticsJob(object):
             for line in reaction.kinetics.comment.split("\n"):
                 rxn_str += "! {0}\n".format(line)
         rxn_str += '{0!s:51} {1:9.3e} {2:9.3f} {3:9.3f}\n'.format(
-            reaction,
+            reaction.toLabeledStr(use_index=False),
             kinetics.A.value_si * factor,
             kinetics.n.value_si,
             kinetics.Ea.value_si / 4184.,
