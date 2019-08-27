@@ -33,6 +33,7 @@ This script contains unit tests of the :mod:`rmgpy.pdep.network` module.
 """
 
 import unittest
+import numpy as np
 
 from rmgpy.pdep.configuration import Configuration
 from rmgpy.transport import TransportData
@@ -142,6 +143,15 @@ class TestConfiguration(unittest.TestCase):
         for label in attributes:
             self.assertNotIn(label, output)
 
+    def test_no_nan_in_densStates(self):
+        """
+        This test asserts that there shouldn't be any NaN in the density of
+        states produced by calculateDensityofStates
+        """
+        elist = np.linspace(0, 1e5)
+        self.configuration.calculateDensityOfStates(elist)
+        print(self.configuration.densStates)
+        self.assertFalse(np.isnan(self.configuration.densStates).any())
 
 ################################################################################
 
