@@ -375,12 +375,22 @@ class Network:
                 
                 # Rescale densities of states such that, when they are integrated
                 # using the Boltzmann factor as a weighting factor, the result is unity
-                for i in range(Nisom+Nreac):
+                # this converts the denisty of states into a population distribution
+                # as described in Allen 2012, equation 1
+                # check for numerical errors in Boltzman distribution
+                if numpy.exp(-self.Elist.max() / constants.R / self.T) == 0.0 or numpy.exp(-self.Elist.min() / constants.R / self.T) == numpy.inf:
+                    raise NetworkError("The energies of range ({0}, {1}) results in numerical rounding errors in the Bolzman distribution. "
+                                       "Check that your energy corrections are accurate.".format(self.Elist.min(), self.Elist.max()))
+                self.densStates_raw = self.densStates.copy()
+                for i in range(Nisom+Nreac+Nprod):
                     Q = 0.0
                     for s in range(NJ):
-                        Q += numpy.sum(self.densStates[i,:,s] * (2*Jlist[s]+1) * numpy.exp(-Elist / constants.R / T))
+                        Q += numpy.sum(self.densStates[i,:,s] * (2*Jlist[s]+1) * numpy.exp(-(Elist) / constants.R / T))
                     self.densStates[i,:,:] /= Q
-                
+                if numpy.isnan(self.densStates).any():
+                    raise NetworkError('Density of states for network {0} has a NaN values after '
+                                       'rescaling densities. Double check issues with network.'.format(self.label))
+
             # Update parameters that depend on temperature and pressure if necessary
             if temperatureChanged or pressureChanged:
                 self.calculateCollisionModel()
@@ -556,6 +566,9 @@ class Network:
             if self.products[n].densStates is not None:
                 logging.debug('Mapping density of states for product channel "{0}"'.format(self.products[n]))
                 self.densStates[n+Nisom+Nreac,:,:] = self.products[n].mapDensityOfStates(self.Elist, self.Jlist)
+
+        if numpy.isnan(self.densStates).any():
+            raise Exception('Density of states has a NaN value. {0}'.format(self.densStates))
 
 #        import pylab
 #        for i in range(Nisom+Nreac+Nprod):
