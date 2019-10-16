@@ -204,7 +204,7 @@ cdef class Configuration:
         # Evaluate configuration integral
         Tred = constants.R * T / epsilon
         omega22 = 1.16145 * Tred**(-0.14874) + 0.52487 * exp(-0.77320 * Tred) + 2.16178 * exp(-2.43787 * Tred)
-    
+        logging.debug("Obtained the following collision parameters: sigma {0}, epsilon {1}, omega22 {2}, collision rate {3}".format(sigma, epsilon, omega22, omega22 * sqrt(8 * constants.kB * T / constants.pi / mu) * constants.pi * sigma*sigma * gasConc))
         # Evaluate collision frequency
         return omega22 * sqrt(8 * constants.kB * T / constants.pi / mu) * constants.pi * sigma*sigma * gasConc
         
