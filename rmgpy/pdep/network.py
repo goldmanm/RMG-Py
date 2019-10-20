@@ -33,8 +33,8 @@ pressure-dependent unimolecular reaction network
 """
 import logging
 import math
-
 import numpy as np
+import os
 
 import rmgpy.constants as constants
 from rmgpy.exceptions import NetworkError, InvalidMicrocanonicalRateError
@@ -242,7 +242,7 @@ class Network(object):
         logging.debug('Finished initialization for network {0}.'.format(self.label))
         logging.debug('The network now has values of {0}'.format(repr(self)))
 
-    def calculate_rate_coefficients(self, Tlist, Plist, method, error_check=True):
+    def calculate_rate_coefficients(self, Tlist, Plist, method, error_check=True, data_dir=None):
 
         n_isom = len(self.isomers)
         n_reac = len(self.reactants)
@@ -312,9 +312,27 @@ class Network(object):
                                 logging.info(K[t, p, 0:n_isom + n_reac + n_prod, 0:n_isom + n_reac])
                                 K[t, p, :, :] = 0 * K[t, p, :, :]
                                 self.K = 0 * self.K
+                if (self.T > 790 and self.T < 800 and self.P > 0.95e5 and self.P < 2e5) and data_dir is not None:
+                    if not os.path.exists(os.path.join(data_dir, 'network_data', '')):
+                        os.mkdir(os.path.join(data_dir, 'network_data', ''))
+                    self.save_intermediate_data(os.path.join(data_dir,'network_data'))
         logging.debug('Finished calculating rate coefficients for network {0}.'.format(self.label))
         logging.debug('The network now has values of {0}'.format(repr(self)))
         logging.debug('Master equation matrix found for network {0} is {1}'.format(self.label, K))
+        if data_dir is not None:
+            if not os.path.exists(os.path.join(data_dir, 'network_data', '')):
+                os.mkdir(os.path.join(data_dir, 'network_data', ''))
+            conformer_list = []
+            for i in self.isomers:
+                conformer_list.append(str(i))
+            for n in self.reactants:
+                conformer_list.append(str(n))
+            for n in self.products:
+                conformer_list.append(str(n))
+            for r in self.path_reactions:
+                conformer_list.append(r.label)
+            np.savez(os.path.join(data_dir,'network_data','{0}_Kmat.npz'.format(self.label)),
+                        K, Tlist, Plist, conformer_list)
         return K
 
     def set_conditions(self, T, P, ymB=None):
@@ -995,6 +1013,18 @@ class Network(object):
         t = np.zeros([n_time], float)
         p = np.zeros([n_time, n_isom, n_grains, n_j], float)
         x = np.zeros([n_time, n_isom + n_reac + n_prod], float)
+        np.savez('network.npz',
+                 e_list,
+                 j_list,
+                 dens_states,
+                 np.array([n_isom, n_reac, n_prod, n_grains, n_j, n_time, n_rows, ymB]),
+                 eq_dist,
+                 p0,
+                 t,
+                 p,
+                 x,
+                 M,
+                 indices,)
         for m in range(n_time):
             ode.integrate(tlist[m])
             t[m] = ode.t
@@ -1136,3 +1166,77 @@ class Network(object):
         if microcanonical_rate == 0:
             raise Exception("Could not find barrier with lowest rate.")
         return microcanonical_rate
+
+    def save_intermediate_data(self, output_directory):
+        """
+        Saves intermediate network information in numpy's npz format.
+        The file name includes the network, temperature and pressure.
+
+        The order of variables is:
+            1. list of the labels for isomers, reactants, products, and transition states
+            2. list of the energies (J/mol)
+            3. list of the rotational energies
+            4. densities of state  (J^-1) values for isomers, reactants, products, and transition states
+            5. fraction of states populated at a given temperature
+            5. the equlibrium ratios of isomers
+            6. the frequency of collision matrix
+            7. microcanonical rates through the forward and reverse directions of each path reaction
+            7. the rate constants as function of E
+            8. the rate constants as function of T and P
+        """
+        # get structural labels
+        conformer_list = []
+        for i in self.isomers:
+            conformer_list.append(str(i))
+        for n in self.reactants:
+            conformer_list.append(str(n))
+        for n in self.products:
+            conformer_list.append(str(n))
+        for r in self.path_reactions:
+            conformer_list.append(r.label)
+        rxn_densStates, rxn_population = self.get_TS_density_of_states()
+        #solve master equation values
+        times = np.logspace(-11, -2, 100)
+        times[0] = 0
+        initial_pop = np.zeros(len(self.isomers) + len(self.reactants) + len(self.products))
+        initial_pop[len(self.isomers):len(self.isomers) + len(self.reactants)] = 1
+        #_times, pop_dist_isomer, total_pop_dist = self.solveFullME(times, initial_pop)
+
+        np.savez(os.path.join(output_directory, '{0}_{1}K_{2}Pa.npz'.format(self.label, self.T, self.P)),
+                 conformer_list,
+                 self.e_list,
+                 self.j_list,
+                 np.concatenate((self.dens_states_raw, rxn_densStates)),
+                 np.concatenate((self.dens_states, rxn_population)),
+                 self.eq_ratios,
+                 self.coll_freq,
+                 self.path_micro_rates,
+                 self.Mcoll,
+                 self.K,
+                 #_times,
+                 #pop_dist_isomer,
+                 #total_pop_dist,
+                 )
+
+    def get_TS_density_of_states(self, ):
+        """
+        This method reimplements some of rmgpy.pdep.reaction so that
+        TS density of states can be output and analyzed by the user.
+
+        This does not include tunnelling values
+        """
+        from rmgpy.pdep import Configuration
+        rxn_densStates = np.zeros((len(self.path_reactions), len(self.e_list), len(self.j_list)), np.float64)
+        for index, rxn in enumerate(self.path_reactions):
+            if rxn.can_tst():
+                conf = Configuration(rxn.transition_state)
+                energies = np.arange(0, self.e_list.max() - conf.species[0].conformer.E0.value_si, self.e_list[1] - self.e_list[0])
+                conf.calculate_density_of_states(energies, active_j_rotor=self.active_j_rotor, active_k_rotor=self.active_k_rotor, rmgmode=self.rmgmode)
+                rxn_densStates[index, :, :] = conf.map_density_of_states(self.e_list, self.j_list)
+        rxn_population = np.zeros((len(self.path_reactions), len(self.e_list), len(self.j_list)), np.float64)
+        for index, rxn in enumerate(self.path_reactions):
+            Q = 0
+            for s in range(self.n_j):
+                Q += np.sum(rxn_densStates[index, :, s] * (2*self.j_list[s]+1) * np.exp(-self.e_list / constants.R / self.T))
+            rxn_population[index, :, :] = rxn_densStates[index, :, :] / Q
+        return rxn_densStates, rxn_population

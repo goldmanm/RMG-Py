@@ -269,7 +269,8 @@ class PressureDependenceJob(object):
 
         self.initialize()
 
-        self.K = self.network.calculate_rate_coefficients(self.Tlist.value_si, self.Plist.value_si, self.method)
+        self.K = self.network.calculate_rate_coefficients(self.Tlist.value_si, self.Plist.value_si, self.method,
+                                                          data_dir=os.path.dirname(output_file))
 
         self.fit_interpolation_models()
 
