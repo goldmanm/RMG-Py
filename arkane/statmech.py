@@ -585,7 +585,7 @@ class StatMechJob(object):
 
         ##save supporting information for calculation
         self.supporting_info = [self.species.label]
-        symmetry_read, optical_isomers_read, point_group_read = statmechLog.get_symmetry_properties()
+        optical_isomers_read, symmetry_read, point_group_read = statmechLog.get_symmetry_properties()
         self.supporting_info.append(externalSymmetry if externalSymmetry else symmetry_read)
         self.supporting_info.append(opticalIsomers if opticalIsomers else optical_isomers_read)
         self.supporting_info.append(point_group_read)
