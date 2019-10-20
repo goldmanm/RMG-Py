@@ -32,7 +32,7 @@
 This module contains the :class:`Network` class, a representation of a 
 pressure-dependent unimolecular reaction network
 """
-
+import os
 import math
 import numpy
 import logging
@@ -228,7 +228,7 @@ class Network:
         logging.debug('Finished initialization for network {0}.'.format(self.label))
         logging.debug('The network now has values of {0}'.format(repr(self)))
 
-    def calculateRateCoefficients(self, Tlist, Plist, method, errorCheck=True):
+    def calculateRateCoefficients(self, Tlist, Plist, method, errorCheck=True, data_dir=None):
         
         Nisom = len(self.isomers)
         Nreac = len(self.reactants)
@@ -296,9 +296,27 @@ class Network:
                                 logging.info(K[t,p,0:Nisom+Nreac+Nprod,0:Nisom+Nreac])
                                 K[t,p,:,:] = 0 * K[t,p,:,:]
                                 self.K = 0 * self.K
+                if (self.T > 790 and self.T < 800 and self.P > 0.95e5 and self.P < 2e5) and data_dir is not None:
+                    if not os.path.exists(os.path.join(data_dir, 'network_data', '')):
+                        os.mkdir(os.path.join(data_dir, 'network_data', ''))
+                    self.save_intermediate_data(os.path.join(data_dir,'network_data'))
         logging.debug('Finished calculating rate coefficients for network {0}.'.format(self.label))
         logging.debug('The network now has values of {0}'.format(repr(self)))
         logging.debug('Master equation matrix found for network {0} is {1}'.format(self.label, K))
+        if data_dir is not None:
+            if not os.path.exists(os.path.join(data_dir, 'network_data', '')):
+                os.mkdir(os.path.join(data_dir, 'network_data', ''))
+            conformer_list = []
+            for i in self.isomers:
+                conformer_list.append(str(i))
+            for n in self.reactants:
+                conformer_list.append(str(n))
+            for n in self.products:
+                conformer_list.append(str(n))
+            for r in self.pathReactions:
+                conformer_list.append(r.label)
+            numpy.savez(os.path.join(data_dir,'network_data','{0}_Kmat.npz'.format(self.label)),
+                        K, Tlist, Plist, conformer_list)
         return K
 
     def setConditions(self, T, P, ymB=None):
@@ -595,12 +613,13 @@ class Network:
         self.Kij = numpy.zeros([Nisom,Nisom,Ngrains,NJ], numpy.float64)
         self.Gnj = numpy.zeros([Nreac+Nprod,Nisom,Ngrains,NJ], numpy.float64)
         self.Fim = numpy.zeros([Nisom,Nreac,Ngrains,NJ], numpy.float64)
+        self.path_microcanonical_rates = numpy.zeros([2*len(self.pathReactions), Ngrains, NJ], numpy.float64)
 
         isomers = [isomer.species[0] for isomer in self.isomers]
         reactants = [reactant.species for reactant in self.reactants]
         products = [product.species for product in self.products]
 
-        for rxn in self.pathReactions:
+        for path_index, rxn in enumerate(self.pathReactions):
             if rxn.reactants[0] in isomers and rxn.products[0] in isomers:
                 # Isomerization
                 reac = isomers.index(rxn.reactants[0])
@@ -769,7 +788,8 @@ class Network:
                     raise InvalidMicrocanonicalRateError('Invalid k(E) values computed for path reaction "{0}".'.format(rxn), k_ratio, Keq_ratio)
                 else:
                     logging.warning('Significant corrections to k(E) to be consistent with high-pressure limit for path reaction "{0}".'.format(rxn))
-
+            self.path_microcanonical_rates[2*path_index, :, :] = kf
+            self.path_microcanonical_rates[2*path_index + 1, :, :] = kr
 #        import pylab
 #        for prod in range(Nisom):
 #            for reac in range(prod):
@@ -946,9 +966,24 @@ class Network:
         t = numpy.zeros([Ntime], float)
         p = numpy.zeros([Ntime, Nisom, Ngrains, NJ], float)
         x = numpy.zeros([Ntime, Nisom+Nreac+Nprod], float)
+        numpy.savez('network.npz',
+                    Elist,
+                    Jlist,
+                    densStates,
+                    numpy.array([Nisom, Nreac, Nprod, Ngrains, NJ, Ntime, Nrows, ymB]),
+                    eqDist,
+                    p0,
+                    t,
+                    p,
+                    x,
+                    M,
+                    indices,)
         for m in range(Ntime):
             ode.integrate(tlist[m])
             t[m] = ode.t
+            if not ode.successful():
+                pass
+                #raise Exception('ODE not successful')
             for r in range(Ngrains):
                 for s in range(NJ):
                     for i in range(0, Nisom):
@@ -1057,3 +1092,77 @@ class Network:
             logging.log(level, '    {0:<48s}'.format(rxn))
         logging.log(level, '========================================================================')
         logging.log(level, '')
+
+    def save_intermediate_data(self, output_directory):
+        """
+        Saves intermediate network information in numpy's npz format.
+        The file name includes the network, temperature and pressure.
+
+        The order of variables is:
+            1. list of the labels for isomers, reactants, products, and transition states
+            2. list of the energies (J/mol)
+            3. list of the rotational energies
+            4. densities of state  (J^-1) values for isomers, reactants, products, and transition states
+            5. fraction of states populated at a given temperature
+            5. the equlibrium ratios of isomers
+            6. the frequency of collision matrix
+            7. microcanonical rates through the forward and reverse directions of each path reaction
+            7. the rate constants as function of E
+            8. the rate constants as function of T and P
+        """
+        # get structural labels
+        conformer_list = []
+        for i in self.isomers:
+            conformer_list.append(str(i))
+        for n in self.reactants:
+            conformer_list.append(str(n))
+        for n in self.products:
+            conformer_list.append(str(n))
+        for r in self.pathReactions:
+            conformer_list.append(r.label)
+        rxn_densStates, rxn_population = self.get_TS_density_of_states()
+        #solve master equation values
+        times = numpy.logspace(-11, -2, 100)
+        times[0] = 0
+        initial_pop = numpy.zeros(len(self.isomers) + len(self.reactants) + len(self.products))
+        initial_pop[len(self.isomers):len(self.isomers) + len(self.reactants)] = 1
+        #_times, pop_dist_isomer, total_pop_dist = self.solveFullME(times, initial_pop)
+
+        numpy.savez(os.path.join(output_directory, '{0}_{1}K_{2}Pa.npz'.format(self.label, self.T, self.P)),
+                    conformer_list,
+                    self.Elist,
+                    self.Jlist,
+                    numpy.concatenate((self.densStates_raw, rxn_densStates)),
+                    numpy.concatenate((self.densStates, rxn_population)),
+                    self.eqRatios,
+                    self.collFreq,
+                    self.path_microcanonical_rates,
+                    self.Mcoll,
+                    self.K,
+                    #_times,
+                    #pop_dist_isomer,
+                    #total_pop_dist,
+                    )
+
+    def get_TS_density_of_states(self, ):
+        """
+        This method reimplements some of rmgpy.pdep.reaction so that
+        TS density of states can be output and analyzed by the user.
+
+        This does not include tunnelling values
+        """
+        from rmgpy.pdep import Configuration
+        rxn_densStates = numpy.zeros((len(self.pathReactions), len(self.Elist), len(self.Jlist)), numpy.float64)
+        for index, rxn in enumerate(self.pathReactions):
+            if rxn.canTST():
+                conf = Configuration(rxn.transitionState)
+                energies = numpy.arange(0, self.Elist.max() - conf.species[0].conformer.E0.value_si, self.Elist[1] - self.Elist[0])
+                conf.calculateDensityOfStates(energies, activeJRotor=self.activeJRotor, activeKRotor=self.activeKRotor, rmgmode=self.rmgmode)
+                rxn_densStates[index, :, :] = conf.mapDensityOfStates(self.Elist, self.Jlist)
+        rxn_population = numpy.zeros((len(self.pathReactions), len(self.Elist), len(self.Jlist)), numpy.float64)
+        for index, rxn in enumerate(self.pathReactions):
+            Q = 0
+            for s in range(self.NJ):
+                Q += numpy.sum(rxn_densStates[index, :, s] * (2*self.Jlist[s]+1) * numpy.exp(-self.Elist / constants.R / self.T))
+            rxn_population[index, :, :] = rxn_densStates[index, :, :] / Q
+        return rxn_densStates, rxn_population
