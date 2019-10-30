@@ -236,6 +236,14 @@ class GaussianLogTest(unittest.TestCase):
         vlist, _ = log.load_scan_energies()
         self.assertEqual(len(vlist), 37)
 
+    def test_uncompleted_runs_throw_warning(self):
+        """
+        Ensures a warning is thrown when the gaussian scan file is not complete
+        """
+        log = GaussianLog(os.path.join(self.data_path, 'alcohol_ether_scan.log'))
+        with self.assertLogs(level=30):  # warnings only
+            log.load_scan_energies()
+
 ################################################################################
 
 

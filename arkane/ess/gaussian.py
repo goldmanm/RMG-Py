@@ -412,7 +412,10 @@ class GaussianLog(Log):
         if opt_freq:
             vlist = vlist[:-1]
             angle = angle[:-1]
-
+        if abs(self._load_number_scans() * scan_angle - angle[-1]) > 1e-5:
+            warn_string = "From input, expected final angle of {0}, got {1} for file at {2}"\
+                          "".format(self._load_number_scans() * scan_angle, angle[-1], self.path)
+            logging.warning(warn_string)
         return vlist, angle
 
     def _load_scan_specs(self, letter_spec, get_after_letter_spec=False):
