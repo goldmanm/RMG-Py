@@ -213,7 +213,7 @@ class GaussianLogTest(unittest.TestCase):
         log = GaussianLog(file_path)
         with self.assertRaises(LogError) as log_error:
             log.load_conformer()
-        self.assertTrue(f'The Gaussian job in {file_path} did not converge.' in str(log_error.exception))
+        self.assertTrue('The Gaussian job in {file_path} did not converge.' in str(log_error.exception))
 
     def test_gap_in_scan(self):
         """
