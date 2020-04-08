@@ -1114,6 +1114,7 @@ def assign_frequency_scale_factor(freq_level):
                  'mp2_rmp2_pvtz': 0.950,  # [2], taken as 'MP2/cc-pVTZ'
                  'mp2_rmp2_pvqz': 0.962,  # [2], taken as 'MP2/cc-pVQZ'
                  'cbs-qb3': 0.99 * 1.014,  # [5], the 0.99 value is the ZPE scale factor of CBS-QB3
+                 'b3lyp/cbsb7': 0.99 * 1.014, # the geometry optimization technique for cbs-qb3
                  'cbs-qb3-paraskevas': 0.99 * 1.014,  # [5], the 0.99 value is the ZPE scale factor of CBS-QB3
                  'ccsd-f12/cc-pvdz-f12': 0.947,  # [2], taken as 'CCSD/cc-pVDZ'
                  'ccsd(t)/cc-pvdz': 0.979,  # [2]
