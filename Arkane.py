@@ -88,8 +88,8 @@ def run_arkane_python(input_file, output_directory=None, verbose=logging.INFO, s
     None.
 
     """
-    if output_directory and os.path.isdir(output_directory[0]):
-        output_directory = os.path.abspath(output_directory[0])
+    if output_directory and os.path.isdir(output_directory):
+        output_directory = os.path.abspath(output_directory)
     else:
         output_directory = os.path.dirname(os.path.abspath(input_file))
 
