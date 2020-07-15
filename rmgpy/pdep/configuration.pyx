@@ -348,6 +348,8 @@ cdef class Configuration(object):
                     self.sum_states *= spec.conformer.spin_multiplicity * spec.conformer.optical_isomers
         if self.dens_states is None:
             raise ValueError("Species {} has no active modes".format(species.label))
+        if np.isnan(self.dens_states).any():
+            raise ValueError("Density of states contains NaN for species{}".format(species.label))
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
