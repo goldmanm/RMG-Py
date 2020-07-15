@@ -148,8 +148,12 @@ cdef class HinderedRotor(Torsion):
             result += ', barrier={0!r}'.format(self.barrier)
         if self.quantum:
             result += ', quantum=True'
+        else:
+            result += ', quantum=False'
         if not self.semiclassical:
             result += ', semiclassical=False'
+        else:
+            result += ', semiclassical=True'
         result += ')'
         return result
 
