@@ -2,7 +2,7 @@
 Running Arkane
 **************
 
-To execute an Arkane job, invoke the command ::
+To execute an Arkane job in the terminal, invoke the command ::
 
     $ python Arkane.py INPUTFILE
 
@@ -45,4 +45,18 @@ To view help information and all available options, use the ``-h``/``--help``
 flag, e.g. ::
 
     $ python Arkane.py -h
+
+Running within python
+=====================
+
+If you are already within a python script and would like to run a calculation,
+you can import the ``run_arkane_python`` method from within the Arkane.py file.
+
+The reequired parameter is a string to the input file: ``input_data``. Optional
+parameters are ``output_directory`` (string of directory), ``verbosity`` (int used
+by logging package), ``save_rmg_libraries`` (boolean), ``plot`` (boolean). You can
+do this by writing in python ::
+
+     $ from Arkane import run_arkane_python
+     $ run_arkane_python(input.py)
 

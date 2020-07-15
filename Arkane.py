@@ -50,19 +50,52 @@ import logging
 
 from arkane.main import Arkane
 
-arkane = Arkane()
+def run_arkane_commandline():
+    arkane = Arkane()
 
-# Parse and validate the command-line arguments
-arkane.parse_command_line_arguments()
+    # Parse and validate the command-line arguments
+    arkane.parse_command_line_arguments()
 
-# Execute the job
-arkane.execute()
+    # Execute the job
+    arkane.execute()
 
-try:
-    import psutil
+    try:
+        import psutil
 
-    process = psutil.Process(os.getpid())
-    memory_info = process.memory_info()
-    logging.info('Memory used: %.2f MB' % (memory_info.rss / 1024.0 / 1024.0))
-except ImportError:
-    logging.info('Optional package dependency "psutil" not found; memory profiling information will not be saved.')
+        process = psutil.Process(os.getpid())
+        memory_info = process.memory_info()
+        logging.info('Memory used: %.2f MB' % (memory_info.rss / 1024.0 / 1024.0))
+    except ImportError:
+        logging.info('Optional package dependency "psutil" not found; memory profiling information will not be saved.')
+
+def run_arkane_python(input_file, output_directory=None, verbose=logging.INFO, save_rmg_libraries=True, plot=False):
+    """
+    method for running arkane from within python (as opposed to from command line)
+
+    Parameters
+    ----------
+    input_file : str
+        string of name of arkane input file
+    output_directory : str, optional
+        string of directory to save arkane output. The default is None.
+    verbose : logging object, optional
+        Type of logging used by Arkane. The default is INFO.
+    save_rmg_libraries : boolean, optional
+        whether or not to save RMG libraries. The default is True.
+
+    Returns
+    -------
+    None.
+
+    """
+    if output_directory and os.path.isdir(output_directory[0]):
+        output_directory = os.path.abspath(output_directory[0])
+    else:
+        output_directory = os.path.dirname(os.path.abspath(input_file))
+
+    arkane = Arkane(input_file, output_directory, logging.INFO, save_rmg_libraries)
+    arkane.plot = plot
+    arkane.execute()
+
+if __name__ == '__main__':
+    run_arkane_commandline()
