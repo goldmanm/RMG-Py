@@ -331,8 +331,8 @@ class Network(object):
                 conformer_list.append(str(n))
             for r in self.path_reactions:
                 conformer_list.append(r.label)
-            np.savez(os.path.join(data_dir,'network_data','{0}_Kmat.npz'.format(self.label)),
-                        K, Tlist, Plist, conformer_list)
+            #np.savez(os.path.join(data_dir,'network_data','{0}_Kmat.npz'.format(self.label)),
+            #            K, Tlist, Plist, conformer_list)
         return K
 
     def set_conditions(self, T, P, ymB=None):
@@ -1013,18 +1013,18 @@ class Network(object):
         t = np.zeros([n_time], float)
         p = np.zeros([n_time, n_isom, n_grains, n_j], float)
         x = np.zeros([n_time, n_isom + n_reac + n_prod], float)
-        np.savez('network.npz',
-                 e_list,
-                 j_list,
-                 dens_states,
-                 np.array([n_isom, n_reac, n_prod, n_grains, n_j, n_time, n_rows, ymB]),
-                 eq_dist,
-                 p0,
-                 t,
-                 p,
-                 x,
-                 M,
-                 indices,)
+        #np.savez('network.npz',
+        #         e_list,
+        #         j_list,
+        #         dens_states,
+        #         np.array([n_isom, n_reac, n_prod, n_grains, n_j, n_time, n_rows, ymB]),
+        #         eq_dist,
+        #         p0,
+        #         t,
+        #         p,
+        #         x,
+        #         M,
+        #         indices,)
         for m in range(n_time):
             ode.integrate(tlist[m])
             t[m] = ode.t
@@ -1202,21 +1202,21 @@ class Network(object):
         initial_pop[len(self.isomers):len(self.isomers) + len(self.reactants)] = 1
         #_times, pop_dist_isomer, total_pop_dist = self.solveFullME(times, initial_pop)
 
-        np.savez(os.path.join(output_directory, '{0}_{1}K_{2}Pa.npz'.format(self.label, self.T, self.P)),
-                 conformer_list,
-                 self.e_list,
-                 self.j_list,
-                 np.concatenate((self.dens_states_raw, rxn_densStates)),
-                 np.concatenate((self.dens_states, rxn_population)),
-                 self.eq_ratios,
-                 self.coll_freq,
-                 self.path_micro_rates,
-                 self.Mcoll,
-                 self.K,
+        #np.savez(os.path.join(output_directory, '{0}_{1}K_{2}Pa.npz'.format(self.label, self.T, self.P)),
+        #         conformer_list,
+        #         self.e_list,
+        #         self.j_list,
+        #         np.concatenate((self.dens_states_raw, rxn_densStates)),
+        #         np.concatenate((self.dens_states, rxn_population)),
+        #         self.eq_ratios,
+        #         self.coll_freq,
+        #         self.path_micro_rates,
+        #         self.Mcoll,
+        #         self.K,
                  #_times,
                  #pop_dist_isomer,
                  #total_pop_dist,
-                 )
+        #         )
 
     def get_TS_density_of_states(self, ):
         """
