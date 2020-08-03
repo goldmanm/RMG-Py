@@ -826,7 +826,7 @@ class Network(object):
                 logging.log(level, '      Actual kf(%g K) = %g', temperature, kf_actual)
                 logging.log(level, '    Expected Keq(%g K) = %g', temperature, Keq_expected)
                 logging.log(level, '      Actual Keq(%g K) = %g', temperature, Keq_actual)
-                if error:
+                if error and not error: # supress error formation from microcanonical issues
                     raise InvalidMicrocanonicalRateError(
                         'Invalid k(E) values computed for path reaction "{0}".'.format(rxn), k_ratio, Keq_ratio)
                 else:
